@@ -1,0 +1,39 @@
+<section class="page-header">
+  <div class="container animate-fade-in">
+    <h1 class="page-title">{{content['products_title']}}</h1>
+    <p class="page-subtitle">{{content['products_subtitle']}}</p>
+  </div>
+</section>
+
+<section class="products-grid container">
+  <div *ngFor="let product of products" class="product-card glass-card animate-slide-up">
+    <div class="product-header">
+      <div class="product-badge-row">
+        <span class="p-icon" *ngIf="product.icon">{{product.icon}}</span>
+        <span class="p-type">{{product.type}}</span>
+      </div>
+      <h3>{{product.name}}</h3>
+      <p class="short-desc">{{product.shortDesc}}</p>
+    </div>
+
+    <!-- Extra details section -->
+    <div class="product-features mt-2" *ngIf="product.features && product.features.length">
+      <ul>
+        <li *ngFor="let feat of product.features">{{feat}}</li>
+      </ul>
+    </div>
+
+    <div class="product-actions mt-auto pt-2">
+      <button class="btn-primary w-full" [routerLink]="['/products', product.id]">Learn More</button>
+    </div>
+  </div>
+</section>
+
+<!-- Custom Consultation CTA -->
+<section class="sub-cta">
+  <div class="container glass-card cta-content text-center">
+    <h2>Need a Customized Solution?</h2>
+    <p>Our engineers can build bespoke systems tailored to your unique business requirements.</p>
+    <button class="btn-outline" routerLink="/contact">Schedule a Consultation</button>
+  </div>
+</section>

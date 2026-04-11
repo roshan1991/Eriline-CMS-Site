@@ -1,0 +1,62 @@
+<section class="about-hero">
+  <div class="hero-bg-accent"></div>
+  <div class="container animate-fade-in">
+    <span class="badge">About Eriline</span>
+    <h1 class="hero-title">{{content['about_title']}}</h1>
+    <p class="hero-subtitle">{{content['about_subtitle']}}</p>
+  </div>
+</section>
+
+<section class="story-section container">
+  <div class="story-grid">
+    <div class="story-image glass-card animate-slide-up">
+      <img [src]="getImageUrl()" alt="Eriline Team">
+      <div class="experience-badge">
+        <span class="num">12+</span>
+        <span class="txt">Years of Excellence</span>
+      </div>
+    </div>
+    <div class="story-content">
+      <h2 class="section-title">Our <span class="text-gradient">Story</span></h2>
+      <div class="desc" [innerHTML]="content['about_story_text']"></div>
+      
+      <div class="mission-vision-grid mt-2">
+        <div class="mv-card glass-card">
+          <div class="mv-icon">🎯</div>
+          <h3>Mission</h3>
+          <div [innerHTML]="content['about_mission_text']"></div>
+        </div>
+        <div class="mv-card glass-card">
+          <div class="mv-icon">👁️</div>
+          <h3>Vision</h3>
+          <div [innerHTML]="content['about_vision_text']"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="values-section">
+  <div class="container">
+    <div class="center-head">
+      <h2 class="section-title">Core <span class="text-gradient">Values</span></h2>
+      <p>The principles that drive every line of code we write.</p>
+    </div>
+    
+    <div class="values-grid mt-3">
+      <div *ngFor="let val of values" class="value-card glass-card animate-hover">
+        <div class="val-icon">{{val.icon}}</div>
+        <h3>{{val.title}}</h3>
+        <p>{{val.desc}}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section container mt-4">
+  <div class="cta-card glass-card text-center">
+    <h2>Ready to start your digital journey?</h2>
+    <p>Let's build something extraordinary together.</p>
+    <button class="btn-primary" routerLink="/contact">Get in Touch</button>
+  </div>
+</section>

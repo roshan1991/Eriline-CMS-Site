@@ -1,0 +1,17 @@
+<section class="page-header">
+  <div class="container animate-fade-in">
+    <h1 class="page-title">{{content['portfolio_title']}}</h1>
+    <p class="page-subtitle">{{content['portfolio_subtitle']}}</p>
+  </div>
+</section>
+
+<section class="portfolio-grid container">
+  <div *ngFor="let project of projects" class="portfolio-item glass-card animate-slide-up">
+    <div class="project-overlay">
+      <span class="category">{{project.category}}</span>
+      <h3>{{project.title}}</h3>
+      <button class="btn-outline btn-sm">View Case Study</button>
+    </div>
+    <img [src]="getImageUrl(project.image)" [alt]="project.title">
+  </div>
+</section>

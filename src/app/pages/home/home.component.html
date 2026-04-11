@@ -1,0 +1,78 @@
+<!-- Hero Section -->
+<section class="hero" [style.background-image]="'url(' + getHeroImage() + ')'">
+  <div class="hero-overlay"></div>
+  <div class="container hero-content animate-fade-in">
+    <span class="badge">Innovation in Code</span>
+    <h1 class="hero-title">{{contentMap['hero_title']}}</h1>
+    <p class="hero-subtitle">{{contentMap['hero_subtitle']}}</p>
+    <div class="hero-btns">
+      <button class="btn-primary" routerLink="/contact">Get a Quote</button>
+      <button class="btn-outline" routerLink="/portfolio">View Portfolio</button>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats-section">
+  <div class="container stats-grid">
+    <div *ngFor="let stat of stats" class="stat-item glass-card">
+      <h3 class="stat-value text-gradient">{{stat.value}}</h3>
+      <p class="stat-label">{{stat.label}}</p>
+    </div>
+  </div>
+</section>
+
+<!-- Core Services Section -->
+<section id="services" class="services-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">Core <span class="accent-text">Software</span> Services</h2>
+      <p class="section-subtitle">We build resilient digital products that drive growth and operational efficiency.</p>
+    </div>
+
+    <div class="services-grid">
+      <div *ngFor="let service of coreServices" class="service-card glass-card">
+        <div class="service-icon">{{service.icon}}</div>
+        <h3 class="service-title">{{service.title}}</h3>
+        <p class="service-desc">{{service.description}}</p>
+        <a routerLink="/contact" class="read-more">Inquire Now →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Cloud Services Section -->
+<section class="cloud-section">
+  <div class="container project-container">
+    <div class="project-img-box">
+      <img src="cloud.png" alt="Cloud Infrastructure" class="project-img">
+    </div>
+    <div class="project-content">
+      <span class="accent-text uppercase">Cloud Excellence</span>
+      <h2 class="project-title">Future-Proof Your Business with Cloud Services</h2>
+      <p>From strategic consulting to managed operations, we ensure your cloud journey is secure, scalable, and optimized.</p>
+      
+      <div class="cloud-mini-grid">
+        <div *ngFor="let item of cloudServices" class="cloud-item">
+          <strong>{{item.title}}</strong>
+          <p>{{item.desc}}</p>
+        </div>
+      </div>
+      
+      <button class="btn-primary mt-2">Consult our Experts</button>
+    </div>
+  </div>
+</section>
+
+<!-- Startup Tech Enablement -->
+<section class="consulting-section">
+  <div class="container glass-card cta-box">
+    <span class="accent-text">Consulting & Support</span>
+    <h2 class="cta-title">Digital Transformation & Startup Enablement</h2>
+    <p>We help SMEs and Startups fast-track their ideas to market with Product Prototyping, MVP development, and ongoing tech support.</p>
+    <div class="consulting-btns mt-2">
+      <button class="btn-primary">MVP Development</button>
+      <button class="btn-outline">IT Strategy</button>
+    </div>
+  </div>
+</section>

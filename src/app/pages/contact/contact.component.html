@@ -1,0 +1,49 @@
+<section class="page-header">
+  <div class="container animate-fade-in">
+    <h1 class="page-title">{{content['contact_title']}}</h1>
+    <p class="page-subtitle">{{content['contact_subtitle']}}</p>
+  </div>
+</section>
+
+<section class="contact-section container">
+  <div class="contact-grid">
+    <div class="contact-info-boxes">
+      <div class="glass-card info-box">
+        <h4>Visit Us</h4>
+        <p>{{content['contact_address']}}</p>
+      </div>
+      <div class="glass-card info-box">
+        <h4>Call Us</h4>
+        <p>{{content['contact_phone']}}</p>
+      </div>
+      <div class="glass-card info-box">
+        <h4>Email Us</h4>
+        <p>{{content['contact_email']}}</p>
+      </div>
+    </div>
+
+    <div class="contact-form glass-card">
+      <form>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" placeholder="John Doe">
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" placeholder="john&#64;example.com">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Subject</label>
+          <input type="text" placeholder="Inquiry about...">
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea rows="5" placeholder="How can we help?"></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Send Message</button>
+      </form>
+    </div>
+  </div>
+</section>

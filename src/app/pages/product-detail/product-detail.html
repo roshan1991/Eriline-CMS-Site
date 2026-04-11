@@ -1,0 +1,113 @@
+<ng-container *ngIf="product$ | async as product; else stateCheck">
+  <div class="product-detail-page">
+    <!-- Immersive Hero Section -->
+    <section class="premium-hero">
+      <div class="hero-image-overlay">
+        <img src="/product-hero.png" alt="Product Hero">
+      </div>
+      <div class="container hero-content">
+        <div class="breadcrumb animate-fade-in">
+          <a routerLink="/products">Solutions</a> <span class="sep">/</span> <span class="curr">{{product.name}}</span>
+        </div>
+        <div class="hero-text-gate">
+          <span class="p-type-badge">{{product.type}}</span>
+          <h1 class="animate-slide-up">{{product.name}}</h1>
+          <p class="subtitle animate-slide-up delay-1">{{product.shortDesc}}</p>
+          <div class="hero-actions animate-slide-up delay-2">
+             <button class="btn-primary" (click)="scrollToDesc()">Explore Features</button>
+             <button class="btn-outline" routerLink="/contact">Get a Quote</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key Specs / Highlights -->
+    <section class="highlights-row container animate-slide-up delay-3">
+      <div class="highlight-card glass-card">
+        <div class="h-icon">⚡</div>
+        <div class="h-info">
+          <h4>Performance</h4>
+          <p>Ultra-low latency processing</p>
+        </div>
+      </div>
+      <div class="highlight-card glass-card">
+        <div class="h-icon">🛡️</div>
+        <div class="h-info">
+          <h4>Security</h4>
+          <p>Enterprise-grade encryption</p>
+        </div>
+      </div>
+      <div class="highlight-card glass-card">
+        <div class="h-icon">☁️</div>
+        <div class="h-info">
+          <h4>Cloud Native</h4>
+          <p>Infinite scalability & sync</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content Layout -->
+    <section class="detail-main container" id="description">
+      <div class="detail-grid">
+        <div class="detail-body">
+          <div class="body-card glass-card animate-fade-in">
+            <div class="rich-html-content" [innerHTML]="product.description"></div>
+          </div>
+
+          <!-- Trusted By Section -->
+          <div class="clients-section mt-3 animate-slide-up delay-1" *ngIf="product.clients?.length">
+            <h3 class="client-head">Trusted By</h3>
+            <div class="clients-grid">
+              <div *ngFor="let client of product.clients" class="client-card glass-card-lite">
+                <img [src]="client.logo" [alt]="client.name">
+                <div class="client-info">
+                  <strong>{{client.name}}</strong>
+                  <span>{{client.industry}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="detail-sticky-sidebar">
+          <div class="cta-vertical glass-card animate-slide-up">
+            <div class="cta-header">
+               <span class="cta-badge">LATEST VERSION v4.2</span>
+               <h3>Ready to deploy?</h3>
+               <p>Scalable licensing options for startups and enterprises.</p>
+            </div>
+            <div class="cta-features">
+              <div class="feat"><span>✔</span> Integration Support</div>
+              <div class="feat"><span>✔</span> Maintenance & Updates</div>
+              <div class="feat"><span>✔</span> Training Sessions</div>
+            </div>
+            <button class="btn-primary w-full mt-2" routerLink="/contact">Contact Sales Team</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Bottom CTA -->
+    <section class="bottom-cta container mt-4">
+      <div class="cta-banner glass-card text-center">
+        <h2>Transform your business today.</h2>
+        <p>Join 200+ companies using {{product.name}} to power their operations.</p>
+        <button class="btn-outline" routerLink="/products">Discover Other Solutions</button>
+      </div>
+    </section>
+  </div>
+</ng-container>
+
+<!-- Loading & State Management -->
+<ng-template #stateCheck>
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="error-state text-center" *ngIf="!loading">
+    <span class="err-icon">📭</span>
+    <h2>Solution Not Found</h2>
+    <p>The requested digital product could not be found or has been moved.</p>
+    <button class="btn-primary" routerLink="/products">Return to Catalog</button>
+  </div>
+</ng-template>

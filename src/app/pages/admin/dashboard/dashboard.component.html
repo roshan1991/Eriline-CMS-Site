@@ -1,0 +1,210 @@
+<div class="dashboard-layout">
+  <aside class="sidebar glass-card">
+    <div class="logo">
+      <img src="/logo.png" alt="Eriline Logo" class="logo-img">
+    </div>
+    
+    <nav>
+      <div class="nav-section-label">PAGES</div>
+      <a *ngFor="let page of pages" 
+         [class.active]="selectedPage === page.id"
+         (click)="filterPage(page.id)">
+         <span class="nav-icon">{{page.icon}}</span>
+         {{page.label}}
+      </a>
+      
+      <div class="nav-section-label mt-2">ACCOUNT</div>
+      <a (click)="auth.logout()" class="logout-link">
+        <span class="nav-icon">🚪</span>
+        Logout
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>v2.1.0 Premium Admin</p>
+    </div>
+  </aside>
+
+  <main class="dashboard-main">
+    <header class="dash-header">
+      <div class="header-content">
+        <div>
+          <h1>{{selectedPage | titlecase}} Management</h1>
+          <p>Global CMS Controls for Eriline Software Portal</p>
+        </div>
+        <div class="header-actions">
+           <a href="/" target="_blank" class="btn-outline btn-sm">View Site</a>
+           <div class="user-pill glass-card">
+             <div class="avatar">{{auth.currentUser()?.charAt(0)}}</div>
+             <span>{{auth.currentUser()}}</span>
+           </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="stats-grid">
+      <div *ngFor="let stat of stats" class="stat-card glass-card">
+        <div class="stat-icon">{{stat.icon}}</div>
+        <div class="stat-data">
+          <h3>{{stat.value}}</h3>
+          <p>{{stat.label}}</p>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="message" class="alert-success animate-fade-in">{{message}}</div>
+
+    <!-- Product Manager -->
+    <section *ngIf="selectedPage === 'products'" class="dash-section glass-card">
+      <div class="flex-between mb-2">
+        <h3>Software Catalog Editor</h3>
+        <button class="btn-primary" (click)="addProduct()">+ New Product</button>
+      </div>
+      
+      <div class="product-manager-list">
+        <div *ngFor="let prod of editableProducts; let i = index" class="product-edit-item glass-card mb-1">
+          <div class="prod-row">
+            <div class="input-group">
+              <label>ID (URL Slug)</label>
+              <input [(ngModel)]="prod.id" placeholder="e.g. pos">
+            </div>
+            <div class="input-group flex-2">
+              <label>System Name</label>
+              <input [(ngModel)]="prod.name" placeholder="Product Name">
+            </div>
+            <div class="input-group">
+              <label>Type / Badge</label>
+              <input [(ngModel)]="prod.type" placeholder="Type (e.g. POS)">
+            </div>
+            <div class="input-group">
+              <label>Icon</label>
+              <input [(ngModel)]="prod.icon" placeholder="💡" style="width: 50px; text-align: center;">
+            </div>
+            <button class="btn-danger btn-icon" style="align-self: flex-end; margin-bottom: 5px;" (click)="removeProduct(i)">🗑️</button>
+          </div>
+          
+          <div class="input-group mt-1">
+             <label>Short Description (Card View)</label>
+             <input [(ngModel)]="prod.shortDesc" placeholder="Brief summary of the product...">
+          </div>
+
+          <div class="features-edit-row mt-1 p-1" style="background: rgba(0,0,0,0.1); border-radius: 8px;">
+             <label class="field-label flex-between">
+                <span>Key Features (Card View)</span>
+                <button class="btn-primary btn-xs" (click)="$any(this).addProductFeature(i)">+ Add Feature</button>
+             </label>
+             <div *ngFor="let feat of prod.features; let fIndex = index; trackBy: trackByIndex" class="flex-between mt-1">
+                 <input [(ngModel)]="prod.features[fIndex]" class="w-full" style="margin-right: 10px;" placeholder="Feature detail...">
+                 <button class="btn-danger btn-xs" (click)="$any(this).removeProductFeature(i, fIndex)">X</button>
+             </div>
+          </div>
+          
+          <div class="quill-wrapper mt-2">
+            <label class="field-label">Rich Description (Details Page)</label>
+            <quill-editor 
+              [(ngModel)]="prod.description" 
+              [modules]="quillConfig"
+              theme="snow">
+            </quill-editor>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary w-full mt-2" (click)="saveProducts()">Publish Catalog Updates</button>
+    </section>
+
+    <!-- Portfolio Manager -->
+    <section *ngIf="selectedPage === 'portfolio'" class="dash-section glass-card">
+      <div class="flex-between mb-2">
+        <h3>Project Showcase Manager</h3>
+        <button class="btn-primary" (click)="$any(this).addPortfolioItem()">+ Add Project</button>
+      </div>
+      
+      <div class="portfolio-manager-list grid-2">
+        <div *ngFor="let proj of editablePortfolio; let i = index" class="portfolio-edit-item glass-card mb-1">
+          <div class="proj-img-preview">
+             <img [src]="getImageUrl(proj.image)">
+             <div class="img-controls mt-1">
+                <input type="file" (change)="onFileSelected($event)">
+                <button class="btn-primary btn-xs mt-1" [disabled]="uploading" (click)="uploadListItemImage(proj, 'portfolio')">
+                    {{uploading ? 'Processing...' : 'Change Image'}}
+                </button>
+             </div>
+          </div>
+          <div class="proj-fields mt-1">
+             <div class="input-group">
+                <label>Project Title</label>
+                <input [(ngModel)]="proj.title" placeholder="Project Title">
+             </div>
+             <div class="input-group mt-1">
+                <label>Category</label>
+                <input [(ngModel)]="proj.category" placeholder="Category">
+             </div>
+             <button class="btn-danger btn-xs mt-1" (click)="removePortfolioItem(i)">Remove Project</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary w-full mt-2" (click)="savePortfolio()">Publish Portfolio Updates</button>
+    </section>
+
+    <!-- SEO & Analytics Manager -->
+    <section *ngIf="selectedPage === 'home'" class="dash-section glass-card">
+      <div class="flex-between mb-2">
+        <h3>SEO & Google Analytics</h3>
+      </div>
+      <div class="input-group">
+        <label>Google Analytics Tracking ID (e.g. G-XXXXXXXXXX)</label>
+        <div style="display: flex; gap: 10px;">
+          <input [(ngModel)]="gaTrackingId" placeholder="Leave empty to disable tracking" style="flex: 1;">
+          <button class="btn-primary" (click)="saveAnalytics()">Save Analytics Config</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Generic Content Editor -->
+    <section class="dash-section glass-card">
+      <h3 class="flex-between">Content Editor <span class="badge">{{selectedPage}}</span></h3>
+      <div class="content-table" *ngIf="filteredContents.length > 0; else noContent">
+        <div *ngFor="let item of filteredContents" class="content-item">
+          
+          <!-- Image Upload Fields -->
+          <ng-container *ngIf="item.content_key.endsWith('_image_url')">
+            <div class="item-header">
+              <span class="key-label">{{item.content_key | uppercase}}</span>
+            </div>
+            <div class="hero-upload-preview">
+              <img [src]="getImageUrl(item.content_value)" class="mini-hero">
+              <input type="file" (change)="onFileSelected($event)">
+              <button class="btn-primary btn-sm" [disabled]="uploading" (click)="uploadCmsImage(item.content_key, item.page)">
+                {{uploading ? 'Uploading...' : 'Upload Image'}}
+              </button>
+            </div>
+          </ng-container>
+
+          <!-- Text Fields -->
+          <ng-container *ngIf="item.content_key !== 'products_list' && !item.content_key.endsWith('_image_url')">
+            <div class="item-header">
+              <span class="key-label">{{item.content_key}}</span>
+              <button class="btn-primary btn-xs" (click)="saveContent(item)">Save Item</button>
+            </div>
+            
+            <div *ngIf="richTextKeys.includes(item.content_key); else plainText" class="quill-wrapper">
+              <quill-editor 
+                [(ngModel)]="item.content_value" 
+                [modules]="quillConfig"
+                theme="snow">
+              </quill-editor>
+            </div>
+            
+            <ng-template #plainText>
+              <textarea [(ngModel)]="item.content_value" rows="3"></textarea>
+            </ng-template>
+          </ng-container>
+
+        </div>
+      </div>
+      <ng-template #noContent>
+        <p class="empty-state">No editable fields found for this page yet.</p>
+      </ng-template>
+    </section>
+  </main>
+</div>

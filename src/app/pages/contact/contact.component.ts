@@ -1,0 +1,32 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { CmsService } from '../../services/cms.service';
+
+@Component({
+  selector: 'app-contact',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './contact.component.html',
+  styleUrl: './contact.component.css'
+})
+export class ContactComponent implements OnInit {
+  content: any = {
+    contact_title: 'Contact Us',
+    contact_subtitle: 'Get in touch with our engineering experts today.',
+    contact_address: '123 Business Road, Colombo, Sri Lanka',
+    contact_phone: '+94 11 234 5678',
+    contact_email: 'info@eriline.lk'
+  };
+
+  constructor(private cms: CmsService) {}
+
+  ngOnInit() {
+    this.cms.getContent().subscribe(data => {
+      data.forEach(item => {
+        if (item.page === 'contact') {
+          this.content[item.content_key] = item.content_value;
+        }
+      });
+    });
+  }
+}
