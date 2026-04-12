@@ -5,16 +5,17 @@
     </div>
 
     <nav class="nav-links" [class.active]="isMenuOpen">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="isMenuOpen = false">Home</a>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"
+        (click)="isMenuOpen = false">Home</a>
       <a routerLink="/about" routerLinkActive="active" (click)="isMenuOpen = false">About Us</a>
       <a routerLink="/products" routerLinkActive="active" (click)="isMenuOpen = false">Products</a>
       <a routerLink="/portfolio" routerLinkActive="active" (click)="isMenuOpen = false">Portfolio</a>
       <a routerLink="/contact" routerLinkActive="active" (click)="isMenuOpen = false">Contact</a>
-      <button class="btn-primary mobile-cta">Get a Quote</button>
+      <button class="btn-primary mobile-cta" routerLink="/contact">Get a Quote</button>
     </nav>
 
     <div class="header-actions">
-      <button class="btn-primary desktop-cta">Get a Quote</button>
+      <button class="btn-primary desktop-cta" routerLink="/contact">Get a Quote</button>
       <button class="menu-toggle" (click)="toggleMenu()">
         <span class="bar"></span>
         <span class="bar"></span>

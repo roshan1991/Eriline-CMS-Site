@@ -23,26 +23,30 @@
     </div>
 
     <div class="contact-form glass-card">
-      <form>
+      <!-- Success Alert (Inline) -->
+      <div *ngIf="successMessage" class="success-alert mb-2">
+        {{successMessage}}
+      </div>
+
+      <form (submit)="onSubmit()">
         <div class="form-row">
           <div class="form-group">
             <label>Full Name</label>
-            <input type="text" placeholder="John Doe">
+            <input type="text" name="name" [(ngModel)]="formData.name" placeholder="John Doe" required>
           </div>
           <div class="form-group">
             <label>Email Address</label>
-            <input type="email" placeholder="john&#64;example.com">
+            <input type="email" name="email" [(ngModel)]="formData.email" placeholder="john&#64;example.com" required>
           </div>
         </div>
         <div class="form-group">
-          <label>Subject</label>
-          <input type="text" placeholder="Inquiry about...">
-        </div>
-        <div class="form-group">
           <label>Message</label>
-          <textarea rows="5" placeholder="How can we help?"></textarea>
+          <textarea name="message" [(ngModel)]="formData.message" rows="5" placeholder="How can we help?"
+            required></textarea>
         </div>
-        <button type="submit" class="btn-primary">Send Message</button>
+        <button type="submit" class="btn-primary" [disabled]="(submitting | async)">
+          {{(submitting | async )? 'Sending...' : 'Send Message'}}
+        </button>
       </form>
     </div>
   </div>

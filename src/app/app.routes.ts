@@ -6,6 +6,7 @@ import { ContactComponent } from './pages/contact/contact.component';
 import { ProductsComponent } from './pages/products/products.component';
 import { LoginComponent } from './pages/admin/login/login.component';
 import { DashboardComponent } from './pages/admin/dashboard/dashboard.component';
+import { authGuard } from './services/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -15,6 +16,6 @@ export const routes: Routes = [
   { path: 'portfolio', component: PortfolioComponent },
   { path: 'contact', component: ContactComponent },
   { path: 'admin/login', component: LoginComponent },
-  { path: 'admin/dashboard', component: DashboardComponent },
+  { path: 'admin/dashboard', component: DashboardComponent, canActivate: [authGuard] },
   { path: '**', redirectTo: '' }
 ];

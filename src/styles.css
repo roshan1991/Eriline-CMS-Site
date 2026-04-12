@@ -1,7 +1,9 @@
 :root {
   --primary-dark: #070f21;
-  --secondary-dark: #0a214d; /* Matches Logo Background */
-  --accent: #f2a93b; /* Matches Logo Accent */
+  --secondary-dark: #0a214d;
+  /* Matches Logo Background */
+  --accent: #f2a93b;
+  /* Matches Logo Accent */
   --accent-hover: #ffb84d;
   --text-primary: #FFFFFF;
   --text-secondary: #94a3b8;
@@ -26,7 +28,12 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   font-weight: 700;
   line-height: 1.2;
@@ -80,6 +87,10 @@ section {
   padding: 80px 0;
 }
 
+.page-header {
+  margin: 2rem 0px 0px 0px;
+}
+
 .text-gradient {
   background: linear-gradient(135deg, #FFF 0%, var(--accent) 100%);
   -webkit-background-clip: text;
@@ -92,6 +103,7 @@ section {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

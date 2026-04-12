@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const app = express();
@@ -47,6 +48,29 @@ async function initDB() {
                 content_key VARCHAR(255) PRIMARY KEY,
                 content_value TEXT NOT NULL,
                 page VARCHAR(100) NOT NULL
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS invoices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                invoice_number VARCHAR(50) UNIQUE NOT NULL,
+                client_name VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                issue_date DATE NOT NULL,
+                status VARCHAR(50) DEFAULT 'Pending',
+                items JSON NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS contact_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
         
@@ -151,6 +175,86 @@ app.post('/api/content', async (req, res) => {
 app.post('/api/upload', upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).send('No file uploaded.');
     res.json({ url: `/uploads/${req.file.filename}` });
+});
+
+// --- INVOICE ENDPOINTS ---
+app.get('/api/invoices', async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM invoices ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/invoices', async (req, res) => {
+    const { invoice_number, client_name, amount, issue_date, status, items } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO invoices (invoice_number, client_name, amount, issue_date, status, items) VALUES (?, ?, ?, ?, ?, ?)',
+            [invoice_number, client_name, amount, issue_date, status, JSON.stringify(items)]
+        );
+        res.json({ message: 'Invoice created successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/invoices/:id', async (req, res) => {
+    try {
+        await pool.query('DELETE FROM invoices WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Invoice deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/invoices/:id/status', async (req, res) => {
+    const { status } = req.body;
+    try {
+        await pool.query('UPDATE invoices SET status = ? WHERE id = ?', [status, req.params.id]);
+        res.json({ message: 'Status updated' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/contact', async (req, res) => {
+    const { name, email, message } = req.body;
+    
+    try {
+        // 1. Save to Database
+        await pool.query(
+            'INSERT INTO contact_messages (name, email, message) VALUES (?, ?, ?)',
+            [name, email, message]
+        );
+
+        // 2. Email Notification Logic
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: email,
+            to: 'rohansiva1991@gmail.com',
+            subject: `New Inquiry from ${name} (Eriline Site)`,
+            text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`
+        };
+
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            await transporter.sendMail(mailOptions);
+            res.json({ message: 'Message saved and email sent' });
+        } else {
+            res.json({ message: 'Message saved to database (Email mock)' });
+        }
+    } catch (err) {
+        console.error('Contact Error:', err);
+        res.status(500).json({ error: 'Failed to process inquiry' });
+    }
 });
 
 const PORT = process.env.PORT || 5000;

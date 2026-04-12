@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { CmsService } from '../../services/cms.service';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-contact',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './contact.component.html',
   styleUrl: './contact.component.css'
 })
@@ -18,7 +20,16 @@ export class ContactComponent implements OnInit {
     contact_email: 'info@eriline.lk'
   };
 
-  constructor(private cms: CmsService) {}
+  formData = {
+    name: '',
+    email: '',
+    message: ''
+  };
+
+  submitting = new BehaviorSubject<boolean>(false);
+  successMessage = '';
+
+  constructor(private cms: CmsService) { }
 
   ngOnInit() {
     this.cms.getContent().subscribe(data => {
@@ -27,6 +38,23 @@ export class ContactComponent implements OnInit {
           this.content[item.content_key] = item.content_value;
         }
       });
+    });
+  }
+
+  onSubmit() {
+    if (this.submitting.value) return;
+    this.submitting.next(true);
+    this.cms.sendContactMessage(this.formData).subscribe({
+      next: () => {
+        this.submitting.next(false);
+        this.successMessage = 'Thank you! Your message has been sent to our engineering team.';
+        this.formData = { name: '', email: '', message: '' };
+        setTimeout(() => this.successMessage = '', 6000);
+      },
+      error: () => {
+        this.submitting.next(false);
+        alert('Failed to send message. Please try again later.');
+      }
     });
   }
 }

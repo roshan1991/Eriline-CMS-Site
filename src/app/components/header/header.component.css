@@ -4,7 +4,8 @@
   left: 0;
   width: 100%;
   z-index: 1000;
-  background: rgba(10, 33, 77, 0.85); /* Deep Brand Navy with opacity */
+  background: rgba(10, 33, 77, 0.85);
+  /* Deep Brand Navy with opacity */
   backdrop-filter: blur(15px);
   border-bottom: 1px solid var(--glass-border);
   padding: 1rem 0;
@@ -17,7 +18,8 @@
 }
 
 .logo-img {
-  height: 40px; /* Optimal size for the brushless font style */
+  height: 40px;
+  /* Optimal size for the brushless font style */
   width: auto;
   object-fit: contain;
   cursor: pointer;
@@ -41,7 +43,8 @@
   position: relative;
 }
 
-.nav-links a:hover, .nav-links a.active {
+.nav-links a:hover,
+.nav-links a.active {
   color: var(--text-primary);
 }
 

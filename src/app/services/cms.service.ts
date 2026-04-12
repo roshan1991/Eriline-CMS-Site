@@ -22,4 +22,25 @@ export class CmsService {
     formData.append('image', file);
     return this.http.post<any>(`${this.apiUrl}/upload`, formData);
   }
+
+  // --- Invoicing ---
+  getInvoices() {
+    return this.http.get<any[]>(`${this.apiUrl}/invoices`);
+  }
+
+  createInvoice(data: any) {
+    return this.http.post(`${this.apiUrl}/invoices`, data);
+  }
+
+  deleteInvoice(id: number) {
+    return this.http.delete(`${this.apiUrl}/invoices/${id}`);
+  }
+
+  updateInvoiceStatus(id: number, status: string) {
+    return this.http.patch(`${this.apiUrl}/invoices/${id}/status`, { status });
+  }
+
+  sendContactMessage(data: any) {
+    return this.http.post(`${this.apiUrl}/contact`, data);
+  }
 }

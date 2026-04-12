@@ -3,16 +3,14 @@
     <div class="logo">
       <img src="/logo.png" alt="Eriline Logo" class="logo-img">
     </div>
-    
+
     <nav>
       <div class="nav-section-label">PAGES</div>
-      <a *ngFor="let page of pages" 
-         [class.active]="selectedPage === page.id"
-         (click)="filterPage(page.id)">
-         <span class="nav-icon">{{page.icon}}</span>
-         {{page.label}}
+      <a *ngFor="let page of pages" [class.active]="selectedPage === page.id" (click)="filterPage(page.id)">
+        <span class="nav-icon">{{page.icon}}</span>
+        {{page.label}}
       </a>
-      
+
       <div class="nav-section-label mt-2">ACCOUNT</div>
       <a (click)="auth.logout()" class="logout-link">
         <span class="nav-icon">🚪</span>
@@ -33,11 +31,11 @@
           <p>Global CMS Controls for Eriline Software Portal</p>
         </div>
         <div class="header-actions">
-           <a href="/" target="_blank" class="btn-outline btn-sm">View Site</a>
-           <div class="user-pill glass-card">
-             <div class="avatar">{{auth.currentUser()?.charAt(0)}}</div>
-             <span>{{auth.currentUser()}}</span>
-           </div>
+          <a href="/" target="_blank" class="btn-outline btn-sm">View Site</a>
+          <div class="user-pill glass-card">
+            <div class="avatar">{{auth.currentUser()?.charAt(0)}}</div>
+            <span>{{auth.currentUser()}}</span>
+          </div>
         </div>
       </div>
     </header>
@@ -60,7 +58,7 @@
         <h3>Software Catalog Editor</h3>
         <button class="btn-primary" (click)="addProduct()">+ New Product</button>
       </div>
-      
+
       <div class="product-manager-list">
         <div *ngFor="let prod of editableProducts; let i = index" class="product-edit-item glass-card mb-1">
           <div class="prod-row">
@@ -80,31 +78,31 @@
               <label>Icon</label>
               <input [(ngModel)]="prod.icon" placeholder="💡" style="width: 50px; text-align: center;">
             </div>
-            <button class="btn-danger btn-icon" style="align-self: flex-end; margin-bottom: 5px;" (click)="removeProduct(i)">🗑️</button>
+            <button class="btn-danger btn-icon" style="align-self: flex-end; margin-bottom: 5px;"
+              (click)="removeProduct(i)">🗑️</button>
           </div>
-          
+
           <div class="input-group mt-1">
-             <label>Short Description (Card View)</label>
-             <input [(ngModel)]="prod.shortDesc" placeholder="Brief summary of the product...">
+            <label>Short Description (Card View)</label>
+            <input [(ngModel)]="prod.shortDesc" placeholder="Brief summary of the product...">
           </div>
 
           <div class="features-edit-row mt-1 p-1" style="background: rgba(0,0,0,0.1); border-radius: 8px;">
-             <label class="field-label flex-between">
-                <span>Key Features (Card View)</span>
-                <button class="btn-primary btn-xs" (click)="$any(this).addProductFeature(i)">+ Add Feature</button>
-             </label>
-             <div *ngFor="let feat of prod.features; let fIndex = index; trackBy: trackByIndex" class="flex-between mt-1">
-                 <input [(ngModel)]="prod.features[fIndex]" class="w-full" style="margin-right: 10px;" placeholder="Feature detail...">
-                 <button class="btn-danger btn-xs" (click)="$any(this).removeProductFeature(i, fIndex)">X</button>
-             </div>
+            <label class="field-label flex-between">
+              <span>Key Features (Card View)</span>
+              <button class="btn-primary btn-xs" (click)="$any(this).addProductFeature(i)">+ Add Feature</button>
+            </label>
+            <div *ngFor="let feat of prod.features; let fIndex = index; trackBy: trackByIndex"
+              class="flex-between mt-1">
+              <input [(ngModel)]="prod.features[fIndex]" class="w-full" style="margin-right: 10px;"
+                placeholder="Feature detail...">
+              <button class="btn-danger btn-xs" (click)="$any(this).removeProductFeature(i, fIndex)">X</button>
+            </div>
           </div>
-          
+
           <div class="quill-wrapper mt-2">
             <label class="field-label">Rich Description (Details Page)</label>
-            <quill-editor 
-              [(ngModel)]="prod.description" 
-              [modules]="quillConfig"
-              theme="snow">
+            <quill-editor [(ngModel)]="prod.description" [modules]="quillConfig" theme="snow">
             </quill-editor>
           </div>
         </div>
@@ -118,32 +116,183 @@
         <h3>Project Showcase Manager</h3>
         <button class="btn-primary" (click)="$any(this).addPortfolioItem()">+ Add Project</button>
       </div>
-      
+
       <div class="portfolio-manager-list grid-2">
         <div *ngFor="let proj of editablePortfolio; let i = index" class="portfolio-edit-item glass-card mb-1">
           <div class="proj-img-preview">
-             <img [src]="getImageUrl(proj.image)">
-             <div class="img-controls mt-1">
-                <input type="file" (change)="onFileSelected($event)">
-                <button class="btn-primary btn-xs mt-1" [disabled]="uploading" (click)="uploadListItemImage(proj, 'portfolio')">
-                    {{uploading ? 'Processing...' : 'Change Image'}}
-                </button>
-             </div>
+            <img [src]="getImageUrl(proj.image)">
+            <div class="img-controls mt-1">
+              <input type="file" (change)="onFileSelected($event)">
+              <button class="btn-primary btn-xs mt-1" [disabled]="uploading"
+                (click)="uploadListItemImage(proj, 'portfolio')">
+                {{uploading ? 'Processing...' : 'Change Image'}}
+              </button>
+            </div>
           </div>
           <div class="proj-fields mt-1">
-             <div class="input-group">
-                <label>Project Title</label>
-                <input [(ngModel)]="proj.title" placeholder="Project Title">
-             </div>
-             <div class="input-group mt-1">
-                <label>Category</label>
-                <input [(ngModel)]="proj.category" placeholder="Category">
-             </div>
-             <button class="btn-danger btn-xs mt-1" (click)="removePortfolioItem(i)">Remove Project</button>
+            <div class="input-group">
+              <label>Project Title</label>
+              <input [(ngModel)]="proj.title" placeholder="Project Title">
+            </div>
+            <div class="input-group mt-1">
+              <label>Category</label>
+              <input [(ngModel)]="proj.category" placeholder="Category">
+            </div>
+            <button class="btn-danger btn-xs mt-1" (click)="removePortfolioItem(i)">Remove Project</button>
           </div>
         </div>
       </div>
       <button class="btn-primary w-full mt-2" (click)="savePortfolio()">Publish Portfolio Updates</button>
+    </section>
+
+    <!-- Client Manager -->
+    <section *ngIf="selectedPage === 'clients'" class="dash-section glass-card">
+      <div class="flex-between mb-2">
+        <h3>Corporate Clients & Partners</h3>
+        <button class="btn-primary" (click)="addClient()">+ Add Client</button>
+      </div>
+
+      <div class="portfolio-manager-list grid-2">
+        <div *ngFor="let client of editableClients; let i = index" class="portfolio-edit-item glass-card mb-1">
+          <div class="proj-img-preview">
+            <img [src]="getImageUrl(client.logo)"
+              style="background: white; padding: 10px; border-radius: 8px; object-fit: contain;">
+            <div class="img-controls mt-1">
+              <input type="file" (change)="onFileSelected($event)">
+              <button class="btn-primary btn-xs mt-1" [disabled]="uploading"
+                (click)="uploadListItemImage(client, 'clients')">
+                {{uploading ? 'Processing...' : 'Update Logo'}}
+              </button>
+            </div>
+          </div>
+          <div class="proj-fields mt-1">
+            <div class="input-group">
+              <label>Client Name</label>
+              <input [(ngModel)]="client.name" placeholder="Client Name">
+            </div>
+            <div class="input-group mt-1">
+              <label>Industry</label>
+              <input [(ngModel)]="client.industry" placeholder="Industry">
+            </div>
+            <div class="input-group mt-1">
+              <label>Address</label>
+              <input [(ngModel)]="client.address" placeholder="Client Address">
+            </div>
+            <div class="input-group mt-1">
+              <label>Phone Number</label>
+              <input [(ngModel)]="client.phone" placeholder="Phone Number">
+            </div>
+            <div class="input-group mt-1">
+              <label>Email Address</label>
+              <input [(ngModel)]="client.email" placeholder="Email Address">
+            </div>
+            
+            <div class="input-group mt-1">
+              <label style="display: block; margin-bottom: 5px;">Utilized Products</label>
+              <div class="flex-row gap-0-5 flex-wrap">
+                <span *ngFor="let prod of editableProducts" 
+                      (click)="toggleClientProduct(client, prod.name)"
+                      class="badge" 
+                      [style.background]="isProductSelected(client, prod.name) ? 'var(--accent)' : 'rgba(255,255,255,0.1)'"
+                      [style.border]="isProductSelected(client, prod.name) ? '1px solid white' : '1px solid rgba(255,255,255,0.2)'"
+                      style="cursor: pointer; font-size: 0.75rem; padding: 4px 10px; transition: all 0.2s;">
+                  {{prod.name}}
+                </span>
+                <p *ngIf="editableProducts.length === 0" style="font-size: 0.8rem; color: #888;">No products defined.</p>
+              </div>
+            </div>
+
+            <div class="flex-row gap-0-5 mt-1">
+              <button class="btn-primary btn-xs" (click)="quickInvoice(client.name)">🧾 Create Invoice</button>
+              <button class="btn-danger btn-xs" (click)="removeClient(i)">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary w-full mt-2" (click)="saveClients()">Publish Client List Updates</button>
+    </section>
+
+    <!-- Invoicing / Billing Manager -->
+    <section *ngIf="selectedPage === 'billing'" class="dash-section glass-card">
+      <div class="flex-between mb-2">
+        <h3>Invoice Generator</h3>
+        <span class="badge">PRO VERSION</span>
+      </div>
+
+      <div class="invoice-creator glass-card mb-2"
+        style="background: rgba(10, 33, 77, 0.2); border: 1px solid var(--accent);">
+        <h4 class="mb-1">Create New Invoice</h4>
+        <div class="grid-2">
+          <div class="input-group">
+            <label>Client Name</label>
+            <select [(ngModel)]="newInvoice.client_name">
+              <option value="">Select a Client</option>
+              <option *ngFor="let c of editableClients" [value]="c.name">{{c.name}}</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>Invoice #</label>
+            <input [(ngModel)]="newInvoice.invoice_number">
+          </div>
+        </div>
+
+        <div class="items-table mt-1">
+          <div class="flex-between mb-1">
+            <label>Line Items</label>
+            <button class="btn-primary btn-xs" (click)="addInvoiceItem()">+ Add Item</button>
+          </div>
+          <div *ngFor="let item of newInvoice.items; let i = index; trackBy: trackByIndex" class="flex-row gap-1 mb-1">
+            <input [(ngModel)]="item.description" placeholder="Description" style="flex: 3;">
+            <input type="number" [(ngModel)]="item.qty" placeholder="Qty" style="flex: 0.5;">
+            <input type="number" [(ngModel)]="item.price" placeholder="Price" style="flex: 1;">
+            <button class="btn-danger btn-xs" (click)="removeInvoiceItem(i)">X</button>
+          </div>
+        </div>
+
+        <div class="flex-between mt-2 pt-1" style="border-top: 1px solid var(--glass-border);">
+          <div class="total-preview">
+            <strong>Total Amount: </strong>
+            <span style="color: var(--accent); font-size: 1.2rem;">${{calculateTotal() | number}}</span>
+          </div>
+          <button class="btn-primary" [disabled]="!newInvoice.client_name || newInvoice.amount <= 0"
+            (click)="saveInvoice()">Generate & Save Invoice</button>
+        </div>
+      </div>
+
+      <h3>Recent Invoices</h3>
+      <div class="invoice-list mt-1">
+        <table class="w-full" style="border-collapse: collapse; text-align: left;width: 100%;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--glass-border); color: var(--text-secondary); font-size: 0.8rem;">
+              <th class="p-1"># NUMBER</th>
+              <th class="p-1">CLIENT</th>
+              <th class="p-1">DATE</th>
+              <th class="p-1">AMOUNT</th>
+              <th class="p-1">STATUS</th>
+              <th class="p-1">ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let inv of invoices" style="border-bottom: 1px solid var(--glass-border);">
+              <td class="p-1"><strong>{{inv.invoice_number}}</strong></td>
+              <td class="p-1">{{inv.client_name}}</td>
+              <td class="p-1">{{inv.issue_date | date}}</td>
+              <td class="p-1" style="color: var(--accent); font-weight: 600;">${{inv.amount | number}}</td>
+              <td class="p-1">
+                <span class="badge" [style.background]="inv.status === 'Paid' ? '#28a745' : '#dc3545'" 
+                      (click)="toggleInvoiceStatus(inv)" style="cursor: pointer;" title="Click to toggle status">
+                  {{inv.status}}
+                </span>
+              </td>
+              <td class="p-1 flex-row gap-0-5">
+                <button class="btn-primary btn-xs" (click)="printInvoice(inv)">📄 Print</button>
+                <button class="btn-danger btn-xs" (click)="deleteInvoice(inv.id)">🗑️</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p *ngIf="invoices.length === 0" class="empty-state mt-2">No invoices generated yet.</p>
+      </div>
     </section>
 
     <!-- SEO & Analytics Manager -->
@@ -165,7 +314,7 @@
       <h3 class="flex-between">Content Editor <span class="badge">{{selectedPage}}</span></h3>
       <div class="content-table" *ngIf="filteredContents.length > 0; else noContent">
         <div *ngFor="let item of filteredContents" class="content-item">
-          
+
           <!-- Image Upload Fields -->
           <ng-container *ngIf="item.content_key.endsWith('_image_url')">
             <div class="item-header">
@@ -174,7 +323,8 @@
             <div class="hero-upload-preview">
               <img [src]="getImageUrl(item.content_value)" class="mini-hero">
               <input type="file" (change)="onFileSelected($event)">
-              <button class="btn-primary btn-sm" [disabled]="uploading" (click)="uploadCmsImage(item.content_key, item.page)">
+              <button class="btn-primary btn-sm" [disabled]="uploading"
+                (click)="uploadCmsImage(item.content_key, item.page)">
                 {{uploading ? 'Uploading...' : 'Upload Image'}}
               </button>
             </div>
@@ -186,15 +336,12 @@
               <span class="key-label">{{item.content_key}}</span>
               <button class="btn-primary btn-xs" (click)="saveContent(item)">Save Item</button>
             </div>
-            
+
             <div *ngIf="richTextKeys.includes(item.content_key); else plainText" class="quill-wrapper">
-              <quill-editor 
-                [(ngModel)]="item.content_value" 
-                [modules]="quillConfig"
-                theme="snow">
+              <quill-editor [(ngModel)]="item.content_value" [modules]="quillConfig" theme="snow">
               </quill-editor>
             </div>
-            
+
             <ng-template #plainText>
               <textarea [(ngModel)]="item.content_value" rows="3"></textarea>
             </ng-template>
