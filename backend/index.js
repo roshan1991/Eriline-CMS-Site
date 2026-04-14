@@ -13,6 +13,17 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Serve Frontend Static Files
+const frontendPath = path.join(__dirname, '../dist/eriline-frontend/browser');
+const releasePath = path.join(__dirname, '../public'); // For production release
+
+// Try to serve from production 'public' first, then development 'dist'
+if (require('fs').existsSync(releasePath)) {
+    app.use(express.static(releasePath));
+} else {
+    app.use(express.static(frontendPath));
+}
+
 const dbConfig = {
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -33,7 +44,7 @@ async function initDB() {
         await connection.end();
 
         pool = mysql.createPool(dbConfig);
-        
+
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -73,7 +84,7 @@ async function initDB() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        
+
         // Full Products JSON Seed
         const fullProducts = [
             { type: 'POS', name: 'Elara POS', description: 'Advanced Point of Sale system with inventory and sales tracking.', tiers: [{ label: 'Standard', setup: '80,000', maintenance: '3,000' }, { label: 'Enterprise', setup: '130,000', maintenance: '7,000' }] },
@@ -86,35 +97,35 @@ async function initDB() {
             { type: 'Static', name: 'Normal Site', description: 'Perfect for landing pages and business profiles.', tiers: [{ label: 'Theme-based', setup: '5,000', maintenance: '3,000' }, { label: 'Custom Design', setup: '15,000', maintenance: '3,000' }] }
         ];
 
-            const portfolioJson = JSON.stringify([
-                { title: 'Enterprise ERP System', category: 'Custom Software', image: '/erp.png' },
-                { title: 'Global Fintech Mobile App', category: 'Mobile Banking', image: '/fintech.png' },
-                { title: 'E-commerce Marketplace', category: 'Web Development', image: '/ecommerce.png' },
-                { title: 'Cloud Infrastructure Migration', category: 'Cloud Services', image: '/cloud-mig.png' },
-                { title: 'Identity Management API', category: 'Cyber Security', image: '/api-sec.png' },
-                { title: 'Startup MVP Platform', category: 'Product Engineering', image: '/startup.png' }
-            ]);
-            const defaultContent = [
-                ['hero_title', 'Empowering the Future with Premium Software Solutions', 'home'],
-                ['hero_subtitle', 'Leading the digital transformation with scalable custom software...', 'home'],
-                ['about_title', 'Engineering the Future', 'about'],
-                ['about_subtitle', 'We blend art and logic to create world-class digital experiences.', 'about'],
-                ['about_image_url', '/about-hero.png', 'about'],
-                ['about_story_text', 'Eriline is a premier software development house dedicated to building high-quality digital products...', 'about'],
-                ['about_mission_text', 'Our mission is to empower businesses with the right technology stack.', 'about'],
-                ['about_vision_text', 'To be the most trusted global partner for high-performance software engineering.', 'about'],
-                ['products_title', 'Digital Products', 'products'],
-                ['products_subtitle', 'Scalable systems designed to power your business growth.', 'products'],
-                ['products_list', JSON.stringify(fullProducts), 'products'],
-                ['portfolio_title', 'Our Portfolio', 'portfolio'],
-                ['portfolio_subtitle', 'Showcasing our precision and expertise across diverse projects.', 'portfolio'],
-                ['portfolio_list', portfolioJson, 'portfolio'],
-                ['contact_title', 'Contact Us', 'contact'],
-                ['contact_subtitle', 'Get in touch with our engineering experts today.', 'contact'],
-                ['contact_address', '123 Business Road, Colombo, Sri Lanka', 'contact'],
-                ['contact_phone', '+94 11 234 5678', 'contact'],
-                ['contact_email', 'info@eriline.lk', 'contact']
-            ];
+        const portfolioJson = JSON.stringify([
+            { title: 'Enterprise ERP System', category: 'Custom Software', image: '/erp.png' },
+            { title: 'Global Fintech Mobile App', category: 'Mobile Banking', image: '/fintech.png' },
+            { title: 'E-commerce Marketplace', category: 'Web Development', image: '/ecommerce.png' },
+            { title: 'Cloud Infrastructure Migration', category: 'Cloud Services', image: '/cloud-mig.png' },
+            { title: 'Identity Management API', category: 'Cyber Security', image: '/api-sec.png' },
+            { title: 'Startup MVP Platform', category: 'Product Engineering', image: '/startup.png' }
+        ]);
+        const defaultContent = [
+            ['hero_title', 'Empowering the Future with Premium Software Solutions', 'home'],
+            ['hero_subtitle', 'Leading the digital transformation with scalable custom software...', 'home'],
+            ['about_title', 'Engineering the Future', 'about'],
+            ['about_subtitle', 'We blend art and logic to create world-class digital experiences.', 'about'],
+            ['about_image_url', '/about-hero.png', 'about'],
+            ['about_story_text', 'Eriline is a premier software development house dedicated to building high-quality digital products...', 'about'],
+            ['about_mission_text', 'Our mission is to empower businesses with the right technology stack.', 'about'],
+            ['about_vision_text', 'To be the most trusted global partner for high-performance software engineering.', 'about'],
+            ['products_title', 'Digital Products', 'products'],
+            ['products_subtitle', 'Scalable systems designed to power your business growth.', 'products'],
+            ['products_list', JSON.stringify(fullProducts), 'products'],
+            ['portfolio_title', 'Our Portfolio', 'portfolio'],
+            ['portfolio_subtitle', 'Showcasing our precision and expertise across diverse projects.', 'portfolio'],
+            ['portfolio_list', portfolioJson, 'portfolio'],
+            ['contact_title', 'Contact Us', 'contact'],
+            ['contact_subtitle', 'Get in touch with our engineering experts today.', 'contact'],
+            ['contact_address', '123 Business Road, Colombo, Sri Lanka', 'contact'],
+            ['contact_phone', '+94 11 234 5678', 'contact'],
+            ['contact_email', 'info@eriline.lk', 'contact']
+        ];
 
         for (const content of defaultContent) {
             await pool.query('INSERT IGNORE INTO site_content (content_key, content_value, page) VALUES (?, ?, ?)', content);
@@ -164,8 +175,8 @@ app.get('/api/content', async (req, res) => {
 app.post('/api/content', async (req, res) => {
     const { content_key, content_value, page } = req.body;
     try {
-        await pool.query('INSERT INTO site_content (content_key, content_value, page) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE content_value = ?', 
-        [content_key, content_value, page, content_value]);
+        await pool.query('INSERT INTO site_content (content_key, content_value, page) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE content_value = ?',
+            [content_key, content_value, page, content_value]);
         res.json({ message: 'Content updated' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -221,7 +232,7 @@ app.patch('/api/invoices/:id/status', async (req, res) => {
 
 app.post('/api/contact', async (req, res) => {
     const { name, email, message } = req.body;
-    
+
     try {
         // 1. Save to Database
         await pool.query(
@@ -254,6 +265,20 @@ app.post('/api/contact', async (req, res) => {
     } catch (err) {
         console.error('Contact Error:', err);
         res.status(500).json({ error: 'Failed to process inquiry' });
+    }
+});
+
+// SPA Catch-all: Send index.html for any unknown routes (Handles Angular Routing)
+app.use((req, res) => {
+    const releaseIndex = path.join(__dirname, '../public', 'index.html');
+    const devIndex = path.join(__dirname, '../dist/eriline-frontend/browser/index.html');
+
+    if (require('fs').existsSync(releaseIndex)) {
+        res.sendFile(releaseIndex);
+    } else if (require('fs').existsSync(devIndex)) {
+        res.sendFile(devIndex);
+    } else {
+        res.status(404).send('Frontend build not found. Please run "npm run build" first.');
     }
 });
 
