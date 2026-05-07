@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CmsService } from '../../services/cms.service';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable, map } from 'rxjs';
 
 @Component({
   selector: 'app-contact',
@@ -12,13 +12,7 @@ import { BehaviorSubject } from 'rxjs';
   styleUrl: './contact.component.css'
 })
 export class ContactComponent implements OnInit {
-  content: any = {
-    contact_title: 'Contact Us',
-    contact_subtitle: 'Get in touch with our engineering experts today.',
-    contact_address: '123 Business Road, Colombo, Sri Lanka',
-    contact_phone: '+94 11 234 5678',
-    contact_email: 'info@eriline.lk'
-  };
+  content$: Observable<any> | undefined;
 
   formData = {
     name: '',
@@ -32,13 +26,25 @@ export class ContactComponent implements OnInit {
   constructor(private cms: CmsService) { }
 
   ngOnInit() {
-    this.cms.getContent().subscribe(data => {
-      data.forEach(item => {
-        if (item.page === 'contact') {
-          this.content[item.content_key] = item.content_value;
-        }
-      });
-    });
+    this.content$ = this.cms.getContent().pipe(
+      map(data => {
+        const content: any = {
+          contact_title: 'Contact Us',
+          contact_subtitle: 'Get in touch with our engineering experts today.',
+          contact_address: '123 Business Road, Colombo, Sri Lanka',
+          contact_phone: '+94 11 234 5678',
+          contact_email: 'info@eriline.lk'
+        };
+
+        data.forEach(item => {
+          if (item.page === 'contact') {
+            content[item.content_key] = item.content_value;
+          }
+        });
+
+        return content;
+      })
+    );
   }
 
   onSubmit() {

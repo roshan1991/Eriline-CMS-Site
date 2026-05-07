@@ -76,7 +76,7 @@ echo.
 echo  Deployment Instructions:
 echo  1. Upload %ZIP_NAME% to your 'www' or target folder on Spaceship.
 echo  2. Extract the zip file in the file manager.
-echo  3. Navigate to: %RELEASE_DIR%/server
+echo  3. Navigate to the 'server' folder
 echo  4. Run: npm install --production
 echo  5. Run: node index.js
 echo.
