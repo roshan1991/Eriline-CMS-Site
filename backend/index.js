@@ -124,7 +124,10 @@ async function initDB() {
             ['contact_subtitle', 'Get in touch with our engineering experts today.', 'contact'],
             ['contact_address', '123 Business Road, Colombo, Sri Lanka', 'contact'],
             ['contact_phone', '+94 11 234 5678', 'contact'],
-            ['contact_email', 'info@eriline.lk', 'contact']
+            ['contact_email', 'info@eriline.lk', 'contact'],
+            ['seo_title', 'Eriline - Empowering the Future with Premium Software Solutions', 'seo'],
+            ['seo_description', 'Leading the digital transformation with scalable custom software.', 'seo'],
+            ['seo_keywords', 'software, development, eriline, custom software', 'seo']
         ];
 
         for (const content of defaultContent) {

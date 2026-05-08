@@ -6,6 +6,7 @@ import { FooterComponent } from './components/footer/footer.component';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs/operators';
 import { CmsService } from './services/cms.service';
+import { Title, Meta } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-root',
@@ -23,6 +24,8 @@ export class App {
     private router: Router,
     private cms: CmsService,
     private renderer: Renderer2,
+    private titleService: Title,
+    private metaService: Meta,
     @Inject(DOCUMENT) private document: Document
   ) {
     this.router.events.pipe(
@@ -31,11 +34,26 @@ export class App {
       this.isAdminPage = event.url.startsWith('/admin');
     });
 
-    this.initAnalytics();
+    this.initGlobalSettings();
   }
 
-  initAnalytics() {
+  initGlobalSettings() {
     this.cms.getContent().subscribe(data => {
+      const seoTitle = data.find(i => i.content_key === 'seo_title');
+      if (seoTitle && seoTitle.content_value) {
+        this.titleService.setTitle(seoTitle.content_value);
+      }
+
+      const seoDesc = data.find(i => i.content_key === 'seo_description');
+      if (seoDesc && seoDesc.content_value) {
+        this.metaService.updateTag({ name: 'description', content: seoDesc.content_value });
+      }
+
+      const seoKeywords = data.find(i => i.content_key === 'seo_keywords');
+      if (seoKeywords && seoKeywords.content_value) {
+        this.metaService.updateTag({ name: 'keywords', content: seoKeywords.content_value });
+      }
+
       const gaConfig = data.find(i => i.content_key === 'ga_tracking_id');
       if (gaConfig && gaConfig.content_value && gaConfig.content_value.trim() !== '' && !this.hasInitializedAnalytics) {
         const trackingId = gaConfig.content_value.trim();

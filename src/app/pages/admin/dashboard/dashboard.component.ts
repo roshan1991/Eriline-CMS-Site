@@ -54,7 +54,8 @@ export class DashboardComponent implements OnInit {
     { id: 'portfolio', label: 'Portfolio', icon: '🎨' },
     { id: 'clients', label: 'Clients', icon: '🤝' },
     { id: 'billing', label: 'Invoices', icon: '🧾' },
-    { id: 'contact', label: 'Contact', icon: '📧' }
+    { id: 'contact', label: 'Contact', icon: '📧' },
+    { id: 'seo', label: 'SEO Settings', icon: '🔍' }
   ];
 
   stats = [
