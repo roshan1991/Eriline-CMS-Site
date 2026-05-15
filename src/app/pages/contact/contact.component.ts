@@ -12,7 +12,13 @@ import { BehaviorSubject, Observable, map } from 'rxjs';
   styleUrl: './contact.component.css'
 })
 export class ContactComponent implements OnInit {
-  content$: Observable<any> | undefined;
+  content: any = {
+    contact_title: 'Contact Us',
+    contact_subtitle: 'Get in touch with our engineering experts today.',
+    contact_address: 'Colombo 06, Sri Lanka',
+    contact_phone: '+94 71 919 5591',
+    contact_email: 'info@eriline.lk'
+  };
 
   formData = {
     name: '',
@@ -26,25 +32,16 @@ export class ContactComponent implements OnInit {
   constructor(private cms: CmsService) { }
 
   ngOnInit() {
-    this.content$ = this.cms.getContent().pipe(
-      map(data => {
-        const content: any = {
-          contact_title: 'Contact Us',
-          contact_subtitle: 'Get in touch with our engineering experts today.',
-          contact_address: '123 Business Road, Colombo, Sri Lanka',
-          contact_phone: '+94 11 234 5678',
-          contact_email: 'info@eriline.lk'
-        };
-
+    this.cms.getContent().subscribe({
+      next: (data) => {
         data.forEach(item => {
           if (item.page === 'contact') {
-            content[item.content_key] = item.content_value;
+            this.content[item.content_key] = item.content_value;
           }
         });
-
-        return content;
-      })
-    );
+      },
+      error: (err) => console.error('Failed to load CMS content', err)
+    });
   }
 
   onSubmit() {

@@ -21,7 +21,7 @@ echo.
 REM Build frontend
 echo [2/5] Building frontend (Eriline)...
 call npm install
-call npm run build
+call npm run build -- --configuration production
 if errorlevel 1 (
     echo ERROR: Frontend build failed!
     pause
@@ -37,18 +37,9 @@ mkdir spaceship_deploy\public 2>nul
 
 REM Copy backend files
 echo Copying backend files...
-copy /Y "backend\package.json" "spaceship_deploy\server\" >nul
-copy /Y "backend\index.js" "spaceship_deploy\server\" >nul
-copy /Y "backend\db.sql" "spaceship_deploy\server\" >nul
-if exist "backend\.env" (
-    copy /Y "backend\.env" "spaceship_deploy\server\" >nul
-)
-
-REM Copy uploads if exists
-if exist "backend\uploads" (
-    echo Copying uploads...
-    xcopy /E /I /Y "backend\uploads" "spaceship_deploy\server\uploads\" >nul
-)
+xcopy "backend\*" "spaceship_deploy\server" /E /H /C /I /Y >nul
+if exist "spaceship_deploy\server\node_modules" rd /s /q "spaceship_deploy\server\node_modules"
+if exist "spaceship_deploy\server\package-lock.json" del /q "spaceship_deploy\server\package-lock.json"
 
 REM Copy frontend build
 echo Copying frontend build...

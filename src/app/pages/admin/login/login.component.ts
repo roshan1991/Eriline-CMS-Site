@@ -14,6 +14,12 @@ import { Router } from '@angular/router';
 export class LoginComponent {
   credentials = { username: '', password: '' };
   error = '';
+  
+  showResetForm = false;
+  resetUsername = '';
+  resetError = '';
+  resetMessage = '';
+  isResetting = false;
 
   constructor(private auth: AuthService, private router: Router) {}
 
@@ -21,6 +27,25 @@ export class LoginComponent {
     this.auth.login(this.credentials).subscribe({
       next: () => this.router.navigate(['/admin/dashboard']),
       error: (err) => this.error = 'Invalid username or password'
+    });
+  }
+
+  onReset() {
+    if (!this.resetUsername) return;
+    this.isResetting = true;
+    this.resetError = '';
+    this.resetMessage = '';
+
+    this.auth.resetPassword(this.resetUsername).subscribe({
+      next: (res) => {
+        this.isResetting = false;
+        this.resetMessage = res.message || 'Password reset instructions sent.';
+        this.resetUsername = '';
+      },
+      error: (err) => {
+        this.isResetting = false;
+        this.resetError = err.error?.message || 'Failed to reset password.';
+      }
     });
   }
 }

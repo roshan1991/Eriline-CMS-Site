@@ -49,6 +49,7 @@ async function initDB() {
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 username VARCHAR(255) UNIQUE NOT NULL,
+                email VARCHAR(255),
                 password VARCHAR(255) NOT NULL,
                 role VARCHAR(50) DEFAULT 'admin'
             )
@@ -122,8 +123,8 @@ async function initDB() {
             ['portfolio_list', portfolioJson, 'portfolio'],
             ['contact_title', 'Contact Us', 'contact'],
             ['contact_subtitle', 'Get in touch with our engineering experts today.', 'contact'],
-            ['contact_address', '123 Business Road, Colombo, Sri Lanka', 'contact'],
-            ['contact_phone', '+94 11 234 5678', 'contact'],
+            ['contact_address', 'Colombo 06, Sri Lanka', 'contact'],
+            ['contact_phone', '+94 71 919 5591', 'contact'],
             ['contact_email', 'info@eriline.lk', 'contact'],
             ['seo_title', 'Eriline - Empowering the Future with Premium Software Solutions', 'seo'],
             ['seo_description', 'Leading the digital transformation with scalable custom software.', 'seo'],
@@ -136,8 +137,8 @@ async function initDB() {
 
         const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', ['admin']);
         if (rows.length === 0) {
-            const hashedPassword = await bcrypt.hash('admin123', 10);
-            await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', ['admin', hashedPassword]);
+            const hashedPassword = await bcrypt.hash('admin@123', 10);
+            await pool.query('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', ['admin', 'rohansiva1991@gmail.com', hashedPassword]);
         }
     } catch (err) {
         console.error('DB Init Error:', err);
@@ -163,6 +164,45 @@ app.post('/api/login', async (req, res) => {
         res.json({ token, username: user.username });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/reset-password', async (req, res) => {
+    const { username } = req.body;
+    try {
+        const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+        if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
+
+        const user = rows[0];
+        const newPassword = Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, user.id]);
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'noreply@eriline.lk',
+            to: user.email || 'rohansiva1991@gmail.com', // fallback if email is not set
+            subject: `Password Reset for ${username} (Eriline Site)`,
+            text: `Your admin password has been reset.\n\nUsername: ${username}\nNew Password: ${newPassword}\n\nPlease login and change your password.`
+        };
+
+        if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+            await transporter.sendMail(mailOptions);
+            res.json({ message: 'A new password has been sent to the admin email.' });
+        } else {
+            res.json({ message: `(Dev Mode) Email not configured. New password: ${newPassword}` });
+        }
+    } catch (err) {
+        console.error('Reset password error:', err);
+        res.status(500).json({ error: 'Failed to reset password' });
     }
 });
 

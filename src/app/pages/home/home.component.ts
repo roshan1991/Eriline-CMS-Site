@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { CmsService } from '../../services/cms.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-home',
@@ -69,7 +70,7 @@ export class HomeComponent implements OnInit {
   getHeroImage() {
     const url = this.contentMap['hero_image_url'];
     if (url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      return `${environment.serverUrl}${url}`;
     }
     return url;
   }

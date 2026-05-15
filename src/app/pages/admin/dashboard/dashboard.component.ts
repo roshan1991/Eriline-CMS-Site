@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CmsService } from '../../../services/cms.service';
 import { AuthService } from '../../../services/auth.service';
 import { QuillModule } from 'ngx-quill';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-dashboard',
@@ -551,7 +552,7 @@ export class DashboardComponent implements OnInit {
 
   getImageUrl(url: string) {
     if (url && url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      return `${environment.serverUrl}${url}`;
     }
     return url || '/hero.png';
   }

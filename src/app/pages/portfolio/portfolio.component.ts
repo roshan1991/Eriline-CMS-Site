@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CmsService } from '../../services/cms.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-portfolio',
@@ -48,7 +49,7 @@ export class PortfolioComponent implements OnInit {
 
   getImageUrl(url: string) {
     if (url && url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      return `${environment.serverUrl}${url}`;
     }
     return url || '/erp.png';
   }

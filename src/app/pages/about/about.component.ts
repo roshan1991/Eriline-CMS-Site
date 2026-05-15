@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CmsService } from '../../services/cms.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-about',
@@ -41,7 +42,7 @@ export class AboutComponent implements OnInit {
   getImageUrl() {
     const url = this.content['about_image_url'];
     if (url && url.startsWith('/uploads')) {
-      return `http://localhost:5000${url}`;
+      return `${environment.serverUrl}${url}`;
     }
     return url || '/about-hero.png';
   }

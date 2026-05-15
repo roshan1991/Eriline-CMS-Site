@@ -3,22 +3,49 @@
     <div class="logo center">
       <span class="logo-text">ERI<span class="accent-text">LINE</span></span>
     </div>
-    <h2>Admin Login</h2>
-    <p class="subtitle">Enter your credentials to manage site content.</p>
+    <ng-container *ngIf="!showResetForm">
+      <h2>Admin Login</h2>
+      <p class="subtitle">Enter your credentials to manage site content.</p>
 
-    <form (submit)="onSubmit()" #loginForm="ngForm">
-      <div class="form-group">
-        <label>Username</label>
-        <input type="text" name="username" [(ngModel)]="credentials.username" required>
+      <form (submit)="onSubmit()" #loginForm="ngForm">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" name="username" [(ngModel)]="credentials.username" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" name="password" [(ngModel)]="credentials.password" required>
+        </div>
+        
+        <div *ngIf="error" class="error-msg">{{error}}</div>
+        
+        <button type="submit" class="btn-primary w-full mb-2" [disabled]="!loginForm.valid">Login</button>
+      </form>
+      <div class="text-center mt-3">
+        <a href="javascript:void(0)" (click)="showResetForm = true; resetMessage=''; resetError=''; error=''" class="reset-link">Forgot Password?</a>
       </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" name="password" [(ngModel)]="credentials.password" required>
+    </ng-container>
+
+    <ng-container *ngIf="showResetForm">
+      <h2>Reset Password</h2>
+      <p class="subtitle">Enter your username to reset your password.</p>
+
+      <form (submit)="onReset()" #resetForm="ngForm">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" name="resetUsername" [(ngModel)]="resetUsername" required>
+        </div>
+        
+        <div *ngIf="resetError" class="error-msg">{{resetError}}</div>
+        <div *ngIf="resetMessage" class="success-msg">{{resetMessage}}</div>
+        
+        <button type="submit" class="btn-primary w-full mb-2" [disabled]="!resetForm.valid || isResetting">
+          {{ isResetting ? 'Sending...' : 'Reset Password' }}
+        </button>
+      </form>
+      <div class="text-center mt-3">
+        <a href="javascript:void(0)" (click)="showResetForm = false; error=''" class="reset-link">Back to Login</a>
       </div>
-      
-      <div *ngIf="error" class="error-msg">{{error}}</div>
-      
-      <button type="submit" class="btn-primary w-full" [disabled]="!loginForm.valid">Login</button>
-    </form>
+    </ng-container>
   </div>
 </div>

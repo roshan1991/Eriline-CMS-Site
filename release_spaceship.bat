@@ -18,7 +18,7 @@ echo.
 REM Build frontend
 echo [2/5] Building Angular Frontend (eriline-frontend)...
 call npm install
-call npm run build
+call npm run build -- --configuration production
 if errorlevel 1 (
     echo.
     echo ERROR: Frontend build failed!
