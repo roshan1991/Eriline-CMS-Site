@@ -1,0 +1,92 @@
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Scheduled Maintenance Billing</h3>
+    <span class="badge">RECURRING BILLING</span>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+  <!-- Create New Scheduled Invoice Form -->
+  <div class="invoice-creator glass-card mb-2" style="background: rgba(10, 33, 77, 0.2); border: 1px solid var(--accent); padding: 1.5rem; border-radius: 12px;">
+    <h4 class="mb-1" style="font-size: 1.1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1rem;">Setup Recurring Maintenance Contract</h4>
+    
+    <div class="grid-3 mb-1">
+      <div class="input-group">
+        <label>Client Name</label>
+        <ng-select 
+          [items]="(editableClients$ | async) || []"
+          bindLabel="name"
+          bindValue="name"
+          [(ngModel)]="newScheduledInvoice.client_name"
+          placeholder="Select a Client"
+          class="custom-dark-select">
+        </ng-select>
+      </div>
+      <div class="input-group">
+        <label>Service / Contract Name</label>
+        <input [(ngModel)]="newScheduledInvoice.service_name" placeholder="e.g. VPS Maintenance / ERP Support">
+      </div>
+      <div class="input-group">
+        <label>Billing Frequency</label>
+        <ng-select 
+          [items]="frequencies"
+          [(ngModel)]="newScheduledInvoice.frequency"
+          [searchable]="false"
+          [clearable]="false"
+          class="custom-dark-select">
+        </ng-select>
+      </div>
+    </div>
+
+    <div class="grid-2 mb-1">
+      <div class="input-group">
+        <label>Base Price / Cycle Amount ($)</label>
+        <input type="number" [(ngModel)]="newScheduledInvoice.amount" placeholder="0.00">
+      </div>
+      <div class="input-group">
+        <label>First Billing Date</label>
+        <input type="date" [(ngModel)]="newScheduledInvoice.start_date">
+      </div>
+    </div>
+
+    <!-- Actions Footer -->
+    <div class="flex-between mt-2 pt-2" style="border-top: 1px solid var(--glass-border);">
+      <p style="font-size: 0.8rem; color: var(--text-secondary);">Generates invoice automaticaly on next bill date or can be run manually.</p>
+      <button class="btn-primary" [disabled]="!newScheduledInvoice.client_name || !newScheduledInvoice.service_name || newScheduledInvoice.amount <= 0" (click)="saveScheduledInvoice()">Create Recurring Contract</button>
+    </div>
+  </div>
+
+  <!-- Active Schedules Listing -->
+  <h3 class="mb-1" style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-top: 2.5rem;">Active Recurring Contracts</h3>
+  
+  <div class="grid-2 mt-1" *ngIf="scheduledInvoices.length > 0; else emptySchedules">
+    <div *ngFor="let sched of scheduledInvoices" class="glass-card" style="padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; border-radius: 12px; min-height: 220px; transition: var(--transition); background: rgba(255,255,255,0.02);">
+      <div>
+        <div class="flex-between mb-1">
+          <h4 style="color: var(--accent); font-size: 1.1rem; margin: 0;">{{sched.service_name}}</h4>
+          <span class="badge" [style.background]="sched.status === 'Active' ? '#28a745' : '#dc3545'">{{sched.status}}</span>
+        </div>
+        <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.8rem;">Client: {{sched.client_name}}</p>
+        
+        <div style="font-size: 0.85rem; color: var(--text-secondary); display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+          <div>Frequency: <strong style="color: #fff;">{{sched.frequency}}</strong></div>
+          <div>Cycle Amount: <strong style="color: #fff;">${{sched.amount | number:'1.2-2'}}</strong></div>
+          <div>Start Date: <strong style="color: #fff;">{{sched.start_date | date:'shortDate'}}</strong></div>
+          <div>Next Bill Date: <strong style="color: #fff;">{{sched.next_bill_date | date:'shortDate'}}</strong></div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.4rem; border-top: 1px solid var(--glass-border); padding-top: 0.8rem; margin-top: auto;">
+        <button class="btn-primary btn-xs" style="flex: 1; justify-content: center;" [disabled]="loading" (click)="triggerScheduledInvoiceNow(sched)">⚡ Run Now</button>
+        <button class="btn-outline btn-xs" style="flex: 1; justify-content: center;" (click)="toggleScheduledInvoiceStatus(sched)">
+          {{sched.status === 'Active' ? '⏸️ Pause' : '▶️ Resume'}}
+        </button>
+        <button class="btn-danger btn-xs" style="padding: 0 0.8rem;" (click)="deleteScheduledInvoice(sched.id)">🗑️</button>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #emptySchedules>
+    <p class="empty-state">No recurring maintenance contracts configured yet.</p>
+  </ng-template>
+</section>

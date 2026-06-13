@@ -1,0 +1,72 @@
+<div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+<!-- SEO & Analytics Manager (Shown on Home or SEO page) -->
+<section *ngIf="selectedPage === 'home' || selectedPage === 'seo'" class="dash-section glass-card" style="margin-bottom: 2rem;">
+  <div class="flex-between mb-2">
+    <h3>SEO & Google Analytics</h3>
+    <span class="badge">GLOBAL SETTINGS</span>
+  </div>
+  <div class="input-group">
+    <label>Google Analytics Tracking ID (e.g. G-XXXXXXXXXX)</label>
+    <div style="display: flex; gap: 10px;">
+      <input [(ngModel)]="gaTrackingId" placeholder="Leave empty to disable tracking" style="flex: 1;">
+      <button class="btn-primary" (click)="saveAnalytics()">Save Analytics Config</button>
+    </div>
+  </div>
+</section>
+
+<!-- Content Editor Section -->
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+    <h3>Content Editor</h3>
+    <span class="badge" style="text-transform: uppercase;">{{selectedPage}} Page</span>
+  </div>
+
+  <div class="content-table" *ngIf="filteredContents.length > 0; else noContent">
+    <div *ngFor="let item of filteredContents" class="content-item" style="border-bottom: 1px solid var(--glass-border); padding: 1.5rem 0; display: flex; flex-direction: column; gap: 1rem;">
+      
+      <!-- Image Upload Fields -->
+      <ng-container *ngIf="item.content_key.endsWith('_image_url')">
+        <div class="item-header flex-between">
+          <span class="key-label" style="font-weight: 700; color: var(--accent); letter-spacing: 0.5px;">{{item.content_key | uppercase}}</span>
+        </div>
+        
+        <div class="hero-upload-preview" style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px;">
+          <img [src]="getImageUrl(item.content_value)" class="mini-hero" style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); background: #fff;">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <input type="file" (change)="onFileSelected($event)" style="font-size: 0.85rem; border: none; background: transparent; padding: 0;">
+            <button class="btn-primary btn-xs" [disabled]="uploading" (click)="uploadCmsImage(item.content_key, item.page)" style="align-self: flex-start;">
+              {{uploading ? 'Uploading...' : 'Upload & Publish Image'}}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Text / HTML Content Fields -->
+      <ng-container *ngIf="item.content_key !== 'products_list' && item.content_key !== 'portfolio_list' && item.content_key !== 'clients_list' && !item.content_key.endsWith('_image_url')">
+        <div class="item-header flex-between">
+          <span class="key-label" style="font-weight: 600; color: var(--text-primary);">{{item.content_key}}</span>
+          <button class="btn-primary btn-xs" (click)="saveContent(item)">💾 Save Item</button>
+        </div>
+
+        <!-- Rich Text Editor (ngx-quill) -->
+        <div *ngIf="richTextKeys.includes(item.content_key); else plainText" class="quill-wrapper">
+          <quill-editor [(ngModel)]="item.content_value" [modules]="quillConfig" theme="snow">
+          </quill-editor>
+        </div>
+
+        <!-- Plain Text Area -->
+        <ng-template #plainText>
+          <div class="input-group">
+            <textarea [(ngModel)]="item.content_value" rows="4" style="resize: vertical;"></textarea>
+          </div>
+        </ng-template>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <ng-template #noContent>
+    <p class="empty-state">No editable text or image fields found for this page.</p>
+  </ng-template>
+</section>

@@ -1,0 +1,103 @@
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Invoice Generator</h3>
+    <span class="badge">PRO VERSION</span>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+  <!-- Create New Invoice Form -->
+  <div class="invoice-creator glass-card mb-2" style="background: rgba(10, 33, 77, 0.2); border: 1px solid var(--accent); padding: 1.5rem; border-radius: 12px;">
+    <h4 class="mb-1" style="font-size: 1.1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1rem;">Create New Invoice</h4>
+    
+    <div class="grid-3 mb-1">
+      <div class="input-group">
+        <label>Client Name</label>
+        <ng-select 
+          [items]="(editableClients$ | async) || []"
+          bindLabel="name"
+          bindValue="name"
+          [(ngModel)]="newInvoice.client_name"
+          placeholder="Select a Client"
+          class="custom-dark-select">
+        </ng-select>
+      </div>
+      <div class="input-group">
+        <label>Invoice #</label>
+        <input [(ngModel)]="newInvoice.invoice_number" placeholder="INV-XXXXXX">
+      </div>
+      <div class="input-group">
+        <label>Issue Date</label>
+        <input type="date" [(ngModel)]="newInvoice.issue_date">
+      </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <div class="items-table mt-2">
+      <div class="flex-between mb-1" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">LINE ITEMS</label>
+        <button class="btn-primary btn-xs" (click)="addInvoiceItem()">+ Add Item</button>
+      </div>
+
+      <div *ngFor="let item of newInvoice.items; let i = index; trackBy: trackByIndex" class="row-items" style="display: flex; gap: 0.8rem; align-items: center; margin-bottom: 0.8rem;">
+        <div class="input-group" style="flex: 3;">
+          <input [(ngModel)]="item.description" placeholder="Description (e.g. Monthly Maintenance)">
+        </div>
+        <div class="input-group" style="flex: 0.8;">
+          <input type="number" [(ngModel)]="item.qty" placeholder="Qty">
+        </div>
+        <div class="input-group" style="flex: 1.2;">
+          <input type="number" [(ngModel)]="item.price" placeholder="Price">
+        </div>
+        <button class="btn-danger btn-xs" style="height: 40px; padding: 0 1rem;" (click)="removeInvoiceItem(i)">X</button>
+      </div>
+    </div>
+
+    <!-- Footer of Creator -->
+    <div class="flex-between mt-2 pt-2" style="border-top: 1px solid var(--glass-border);">
+      <div class="total-preview">
+        <strong style="color: var(--text-secondary);">Total Amount: </strong>
+        <span style="color: var(--accent); font-size: 1.4rem; font-weight: 700; margin-left: 0.5rem;">${{calculateTotal() | number:'1.2-2'}}</span>
+      </div>
+      <button class="btn-primary" [disabled]="!newInvoice.client_name || newInvoice.amount <= 0" (click)="saveInvoice()">Generate & Save Invoice</button>
+    </div>
+  </div>
+
+  <!-- Recent Invoices List -->
+  <h3 class="mb-1" style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-top: 2rem;">Recent Invoices</h3>
+  <div class="invoice-list mt-1">
+    <table class="w-full" style="border-collapse: collapse; text-align: left; width: 100%;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--glass-border); color: var(--text-secondary); font-size: 0.8rem;">
+          <th style="padding: 0.8rem 0.5rem;"># NUMBER</th>
+          <th style="padding: 0.8rem 0.5rem;">CLIENT</th>
+          <th style="padding: 0.8rem 0.5rem;">DATE</th>
+          <th style="padding: 0.8rem 0.5rem;">AMOUNT</th>
+          <th style="padding: 0.8rem 0.5rem; text-align: center;">STATUS</th>
+          <th style="padding: 0.8rem 0.5rem; text-align: right;">ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let inv of invoices" style="border-bottom: 1px solid var(--glass-border); transition: var(--transition);">
+          <td style="padding: 0.8rem 0.5rem;"><strong>{{inv.invoice_number}}</strong></td>
+          <td style="padding: 0.8rem 0.5rem;">{{inv.client_name}}</td>
+          <td style="padding: 0.8rem 0.5rem;">{{inv.issue_date | date}}</td>
+          <td style="padding: 0.8rem 0.5rem; color: var(--accent); font-weight: 600;">${{inv.amount | number:'1.2-2'}}</td>
+          <td style="padding: 0.8rem 0.5rem; text-align: center;">
+            <span class="badge" [style.background]="inv.status === 'Paid' ? '#28a745' : '#dc3545'" 
+                  (click)="toggleInvoiceStatus(inv)" style="cursor: pointer; user-select: none;" title="Click to toggle status">
+              {{inv.status}}
+            </span>
+          </td>
+          <td style="padding: 0.8rem 0.5rem; text-align: right;">
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+              <button class="btn-primary btn-xs" (click)="printInvoice(inv)">📄 Print</button>
+              <button class="btn-danger btn-xs" (click)="deleteInvoice(inv.id)">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="invoices.length === 0" class="empty-state mt-2">No invoices generated yet.</p>
+  </div>
+</section>
