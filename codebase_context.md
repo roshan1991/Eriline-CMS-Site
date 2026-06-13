@@ -1006,9 +1006,15 @@ module.exports = verifyToken;
 ```javascript
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
+    destination: (req, file, cb) => cb(null, uploadsDir),
     filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname))
 });
 
@@ -6207,7 +6213,7 @@ export class CmsService {
   uploadImage(file: File) {
     const formData = new FormData();
     formData.append('image', file);
-    return this.http.post<any>(`${this.apiUrl}/upload`, formData);
+    return this.http.post<any>(`${this.apiUrl}/content/upload`, formData);
   }
 
   // --- Invoicing ---

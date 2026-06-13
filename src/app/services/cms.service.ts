@@ -21,7 +21,7 @@ export class CmsService {
   uploadImage(file: File) {
     const formData = new FormData();
     formData.append('image', file);
-    return this.http.post<any>(`${this.apiUrl}/upload`, formData);
+    return this.http.post<any>(`${this.apiUrl}/content/upload`, formData);
   }
 
   // --- Invoicing ---
