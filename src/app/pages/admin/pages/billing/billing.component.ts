@@ -7,119 +7,135 @@ import { BehaviorSubject } from 'rxjs';
 import { CmsService } from '../../../../services/cms.service';
 
 @Component({
-  selector: 'app-admin-billing',
-  standalone: true,
-  imports: [CommonModule, FormsModule, NgSelectModule],
-  templateUrl: './billing.component.html'
+    selector: 'app-admin-billing',
+    standalone: true,
+    imports: [CommonModule, FormsModule, NgSelectModule],
+    templateUrl: './billing.component.html'
 })
 export class AdminBillingComponent implements OnInit {
-  contents: any[] = [];
-  invoices: any[] = [];
-  editableClients$ = new BehaviorSubject<any[]>([]);
-  message = '';
+    contents: any[] = [];
+    invoices: any = new BehaviorSubject<any[]>([]);
+    editableClients$ = new BehaviorSubject<any[]>([]);
+    message = '';
 
-  newInvoice: any = {
-    invoice_number: 'INV-' + Date.now().toString().slice(-6),
-    client_name: '',
-    issue_date: new Date().toISOString().split('T')[0],
-    amount: 0,
-    status: 'Pending',
-    items: [{ description: '', qty: 1, price: 0 }]
-  };
+    newInvoice: any = {
+        invoice_number: 'INV-' + Date.now().toString().slice(-6),
+        client_name: '',
+        issue_date: new Date().toISOString().split('T')[0],
+        amount: 0,
+        status: 'Pending',
+        items: [{ description: '', qty: 1, price: 0 }]
+    };
 
-  constructor(private cms: CmsService, private route: ActivatedRoute) {}
+    constructor(private cms: CmsService, private route: ActivatedRoute) { }
 
-  ngOnInit() {
-    this.loadInvoices();
-    this.loadClients();
-    
-    // Check if clientName was passed via route query params
-    this.route.queryParams.subscribe(params => {
-      if (params['client']) {
-        this.newInvoice.client_name = params['client'];
-      }
-    });
-  }
-
-  loadClients() {
-    this.cms.getContent().subscribe(data => {
-      this.contents = data;
-      const clientsItem = this.contents.find(i => i.content_key === 'clients_list');
-      if (clientsItem) {
-        try { this.editableClients$.next(JSON.parse(clientsItem.content_value)); } catch (e) { this.editableClients$.next([]); }
-      }
-    });
-  }
-
-  loadInvoices() {
-    this.cms.getInvoices().subscribe(data => {
-      this.invoices = data.map(inv => ({ 
-        ...inv, 
-        items: typeof inv.items === 'string' ? JSON.parse(inv.items) : inv.items 
-      }));
-    });
-  }
-
-  addInvoiceItem() {
-    this.newInvoice.items.push({ description: '', qty: 1, price: 0 });
-  }
-
-  removeInvoiceItem(index: number) {
-    this.newInvoice.items.splice(index, 1);
-  }
-
-  calculateTotal() {
-    this.newInvoice.amount = this.newInvoice.items.reduce((acc: number, item: any) => acc + (item.qty * item.price), 0);
-    return this.newInvoice.amount;
-  }
-
-  saveInvoice() {
-    this.calculateTotal();
-    this.cms.createInvoice(this.newInvoice).subscribe(() => {
-        this.showMessage('Invoice generated successfully!');
+    ngOnInit() {
         this.loadInvoices();
-        this.newInvoice = {
-            invoice_number: 'INV-' + Date.now().toString().slice(-6),
-            client_name: '',
-            issue_date: new Date().toISOString().split('T')[0],
-            amount: 0,
-            status: 'Pending',
-            items: [{ description: '', qty: 1, price: 0 }]
-        };
-    });
-  }
+        this.loadClients();
 
-  deleteInvoice(id: number) {
-    if (confirm('Are you sure you want to delete this invoice?')) {
-        this.cms.deleteInvoice(id).subscribe(() => {
-            this.showMessage('Invoice deleted');
-            this.loadInvoices();
+        // Check if clientName was passed via route query params
+        this.route.queryParams.subscribe(params => {
+            if (params['client']) {
+                this.newInvoice.client_name = params['client'];
+            }
         });
     }
-  }
 
-  toggleInvoiceStatus(inv: any) {
-    const newStatus = inv.status === 'Paid' ? 'Pending' : 'Paid';
-    this.cms.updateInvoiceStatus(inv.id, newStatus).subscribe(() => {
-        inv.status = newStatus;
-        this.showMessage(`Invoice #${inv.invoice_number} marked as ${newStatus}`);
-    });
-  }
+    loadClients() {
+        this.cms.getContent().subscribe(data => {
+            this.contents = data;
+            const clientsItem = this.contents.find(i => i.content_key === 'clients_list');
+            if (clientsItem) {
+                console.log(JSON.parse(clientsItem.content_value))
+                try { this.editableClients$.next(JSON.parse(clientsItem.content_value)); } catch (e) { this.editableClients$.next([]); }
+            }
+        });
+    }
 
-  printInvoice(inv: any) {
-    const client = this.editableClients$.value.find(c => c.name === inv.client_name);
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    loadInvoices() {
+        this.cms.getInvoices().subscribe(data => {
+            this.invoices.next(data.map(inv => ({
+                ...inv,
+                items: typeof inv.items === 'string' ? JSON.parse(inv.items) : inv.items
+            })));
+        });
+    }
 
-    const itemsHtml = inv.items.map((it: any, index: number) => `
+    addInvoiceItem() {
+        this.newInvoice.items.push({ description: '', qty: 1, price: 0 });
+    }
+
+    removeInvoiceItem(index: number) {
+        this.newInvoice.items.splice(index, 1);
+    }
+
+    calculateTotal() {
+        this.newInvoice.amount = this.newInvoice.items.reduce((acc: number, item: any) => acc + (item.qty * item.price), 0);
+        return this.newInvoice.amount;
+    }
+
+    saveInvoice() {
+        this.calculateTotal();
+        this.cms.createInvoice(this.newInvoice).subscribe(() => {
+            this.showMessage('Invoice generated successfully!');
+            this.loadInvoices();
+            this.newInvoice = {
+                invoice_number: 'INV-' + Date.now().toString().slice(-6),
+                client_name: '',
+                issue_date: new Date().toISOString().split('T')[0],
+                amount: 0,
+                status: 'Pending',
+                items: [{ description: '', qty: 1, price: 0 }]
+            };
+        });
+    }
+
+    deleteInvoice(id: number) {
+        if (confirm('Are you sure you want to delete this invoice?')) {
+            this.cms.deleteInvoice(id).subscribe(() => {
+                this.showMessage('Invoice deleted');
+                this.loadInvoices();
+            });
+        }
+    }
+
+    toggleInvoiceStatus(inv: any) {
+        const newStatus = inv.status === 'Paid' ? 'Pending' : 'Paid';
+        this.cms.updateInvoiceStatus(inv.id, newStatus).subscribe(() => {
+            inv.status = newStatus;
+            this.showMessage(`Invoice #${inv.invoice_number} marked as ${newStatus}`);
+        });
+    }
+
+    sendEmail(inv: any) {
+        inv.sendingEmail = true;
+        this.cms.sendInvoiceEmail(inv.id).subscribe({
+            next: (res: any) => {
+                this.showMessage(res.message || 'Invoice email sent successfully!');
+                inv.sendingEmail = false;
+            },
+            error: (err) => {
+                const errMsg = err.error?.message || err.error?.error || err.message || 'Failed to send email';
+                this.showMessage('Error: ' + errMsg);
+                inv.sendingEmail = false;
+            }
+        });
+    }
+
+    printInvoice(inv: any) {
+        const client = this.editableClients$.value.find(c => c.name === inv.client_name);
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const itemsHtml = inv.items.map((it: any, index: number) => `
         <tr style="background: ${index % 2 === 0 ? '#fff' : '#ffe9da'};">
             <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: 500;">${it.description}</td>
             <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: center;">${it.qty || ''}</td>
-            <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500;">${Number(it.price * (it.qty || 1)).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500;">${Number(it.price * (it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
         </tr>
     `).join('');
 
-    printWindow.document.write(`
+        printWindow.document.write(`
         <html>
             <head>
                 <title>Eriline Invoice - ${inv.invoice_number}</title>
@@ -279,7 +295,7 @@ export class AdminBillingComponent implements OnInit {
                     <div class="totals-section">
                         <div class="totals-row">
                             <span style="color: #666;">Total</span>
-                            <span style="font-weight: bold;">${Number(inv.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <span style="font-weight: bold;">${Number(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
                         <div class="totals-row">
                             <span style="color: #666;">Paid</span>
@@ -287,7 +303,7 @@ export class AdminBillingComponent implements OnInit {
                         </div>
                          <div class="totals-row" style="border-top: 1px solid #ddd; margin-top: 5px; padding-top: 10px; font-size: 20px;">
                             <span style="font-weight: bold;">Total</span>
-                            <span style="font-weight: bold; color: #0A214D;">${Number(inv.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                            <span style="font-weight: bold; color: #0A214D;">${Number(inv.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         </div>
                     </div>
 
@@ -317,15 +333,15 @@ export class AdminBillingComponent implements OnInit {
             </body>
         </html>
     `);
-    printWindow.document.close();
-  }
+        printWindow.document.close();
+    }
 
-  showMessage(msg: string) {
-    this.message = msg;
-    setTimeout(() => this.message = '', 3000);
-  }
+    showMessage(msg: string) {
+        this.message = msg;
+        setTimeout(() => this.message = '', 3000);
+    }
 
-  trackByIndex(index: number, obj: any): any {
-    return index;
-  }
+    trackByIndex(index: number, obj: any): any {
+        return index;
+    }
 }

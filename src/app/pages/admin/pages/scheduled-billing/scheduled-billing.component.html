@@ -19,7 +19,9 @@
           bindValue="name"
           [(ngModel)]="newScheduledInvoice.client_name"
           placeholder="Select a Client"
-          class="custom-dark-select">
+          class="custom-dark-select"
+          appendTo="body"
+          panelClass="custom-dark-dropdown-panel">
         </ng-select>
       </div>
       <div class="input-group">
@@ -33,7 +35,9 @@
           [(ngModel)]="newScheduledInvoice.frequency"
           [searchable]="false"
           [clearable]="false"
-          class="custom-dark-select">
+          class="custom-dark-select"
+          appendTo="body"
+          panelClass="custom-dark-dropdown-panel">
         </ng-select>
       </div>
     </div>

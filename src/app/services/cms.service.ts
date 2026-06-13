@@ -41,6 +41,10 @@ export class CmsService {
     return this.http.patch(`${this.apiUrl}/invoices/${id}/status`, { status });
   }
 
+  sendInvoiceEmail(id: number) {
+    return this.http.post<any>(`${this.apiUrl}/invoices/${id}/send-email`, {});
+  }
+
   getScheduledInvoices() {
     return this.http.get<any[]>(`${this.apiUrl}/invoices/scheduled`);
   }

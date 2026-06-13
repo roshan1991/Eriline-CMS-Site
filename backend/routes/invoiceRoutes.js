@@ -13,5 +13,6 @@ router.get('/', verifyToken, invoiceController.getAllInvoices);
 router.post('/', verifyToken, invoiceController.createInvoice);
 router.delete('/:id', verifyToken, invoiceController.deleteInvoice);
 router.patch('/:id/status', verifyToken, invoiceController.updateInvoiceStatus);
+router.post('/:id/send-email', verifyToken, invoiceController.sendInvoiceEmail);
 
 module.exports = router;
