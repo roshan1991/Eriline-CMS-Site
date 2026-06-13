@@ -1,0 +1,35 @@
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Project Showcase Manager</h3>
+    <button class="btn-primary" (click)="addPortfolioItem()">+ Add Project</button>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+  <div class="portfolio-manager-list grid-2">
+    <div *ngFor="let proj of editablePortfolio; let i = index" class="portfolio-edit-item glass-card mb-1">
+      <div class="proj-img-preview">
+        <img [src]="getImageUrl(proj.image)">
+        <div class="img-controls mt-1">
+          <input type="file" (change)="onFileSelected($event)">
+          <button class="btn-primary btn-xs mt-1" [disabled]="uploading"
+            (click)="uploadListItemImage(proj)">
+            {{uploading ? 'Processing...' : 'Change Image'}}
+          </button>
+        </div>
+      </div>
+      <div class="proj-fields mt-1">
+        <div class="input-group">
+          <label>Project Title</label>
+          <input [(ngModel)]="proj.title" placeholder="Project Title">
+        </div>
+        <div class="input-group mt-1">
+          <label>Category</label>
+          <input [(ngModel)]="proj.category" placeholder="Category">
+        </div>
+        <button class="btn-danger btn-xs mt-1" (click)="removePortfolioItem(i)">Remove Project</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn-primary w-full mt-2" (click)="savePortfolio()">Publish Portfolio Updates</button>
+</section>

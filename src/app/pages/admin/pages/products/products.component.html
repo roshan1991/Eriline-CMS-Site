@@ -1,0 +1,55 @@
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Software Catalog Editor</h3>
+    <button class="btn-primary" (click)="addProduct()">+ New Product</button>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+  <div class="product-manager-list">
+    <div *ngFor="let prod of editableProducts; let i = index" class="product-edit-item glass-card mb-1" style="background: rgba(255,255,255,0.02); margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+      <div class="prod-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <div class="input-group" style="flex: 1; min-width: 150px;">
+          <label>ID (URL Slug)</label>
+          <input [(ngModel)]="prod.id" placeholder="e.g. pos">
+        </div>
+        <div class="input-group" style="flex: 2; min-width: 200px;">
+          <label>System Name</label>
+          <input [(ngModel)]="prod.name" placeholder="Product Name">
+        </div>
+        <div class="input-group" style="flex: 1; min-width: 150px;">
+          <label>Type / Badge</label>
+          <input [(ngModel)]="prod.type" placeholder="Type (e.g. POS)">
+        </div>
+        <div class="input-group" style="flex: 0.5; min-width: 80px;">
+          <label>Icon</label>
+          <input [(ngModel)]="prod.icon" placeholder="💡" style="text-align: center;">
+        </div>
+        <button class="btn-danger btn-icon" style="align-self: flex-end; height: 42px; width: 42px;" (click)="removeProduct(i)">🗑️</button>
+      </div>
+
+      <div class="input-group mt-1">
+        <label>Short Description (Card View)</label>
+        <input [(ngModel)]="prod.shortDesc" placeholder="Brief summary of the product...">
+      </div>
+
+      <div class="features-edit-row mt-1 p-1" style="background: rgba(0,0,0,0.1); border-radius: 8px; padding: 1rem;">
+        <label class="field-label flex-between" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">
+          <span>Key Features (Card View)</span>
+          <button class="btn-primary btn-xs" (click)="addProductFeature(i)">+ Add Feature</button>
+        </label>
+        <div *ngFor="let feat of prod.features; let fIndex = index; trackBy: trackByIndex" class="flex-between mt-1" style="display: flex; gap: 10px; margin-bottom: 0.5rem;">
+          <input [(ngModel)]="prod.features[fIndex]" style="flex: 1;" placeholder="Feature detail...">
+          <button class="btn-danger btn-xs" style="padding: 0.2rem 0.5rem;" (click)="removeProductFeature(i, fIndex)">X</button>
+        </div>
+      </div>
+
+      <div class="quill-wrapper mt-2">
+        <label class="field-label" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #333;">Rich Description (Details Page)</label>
+        <quill-editor [(ngModel)]="prod.description" [modules]="quillConfig" theme="snow">
+        </quill-editor>
+      </div>
+    </div>
+  </div>
+  <button class="btn-primary w-full mt-2" (click)="saveProducts()">Publish Catalog Updates</button>
+</section>

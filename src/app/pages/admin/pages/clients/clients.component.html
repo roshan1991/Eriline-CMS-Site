@@ -1,0 +1,68 @@
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Corporate Clients & Partners</h3>
+    <button class="btn-primary" (click)="addClient()">+ Add Client</button>
+  </div>
+
+  <div *ngIf="message$ | async" class="alert-success animate-fade-in" style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message$ | async}}</div>
+
+  <div class="portfolio-manager-list grid-2">
+    <div *ngFor="let client of (editableClients$ | async); let i = index" class="portfolio-edit-item glass-card mb-1">
+      <div class="proj-img-preview">
+        <img [src]="getImageUrl(client.logo)"
+          style="background: white; padding: 10px; border-radius: 8px; object-fit: contain;">
+        <div class="img-controls mt-1">
+          <input type="file" (change)="onFileSelected($event)">
+          <button class="btn-primary btn-xs mt-1" [disabled]="uploading$ | async"
+            (click)="uploadListItemImage(client)">
+            {{(uploading$ | async) ? 'Processing...' : 'Update Logo'}}
+          </button>
+        </div>
+      </div>
+      <div class="proj-fields mt-1">
+        <div class="input-group">
+          <label>Client Name</label>
+          <input [(ngModel)]="client.name" placeholder="Client Name">
+        </div>
+        <div class="input-group mt-1">
+          <label>Industry</label>
+          <input [(ngModel)]="client.industry" placeholder="Industry">
+        </div>
+        <div class="input-group mt-1">
+          <label>Address</label>
+          <input [(ngModel)]="client.address" placeholder="Client Address">
+        </div>
+        <div class="input-group mt-1">
+          <label>Phone Number</label>
+          <input [(ngModel)]="client.phone" placeholder="Phone Number">
+        </div>
+        <div class="input-group mt-1">
+          <label>Email Address</label>
+          <input [(ngModel)]="client.email" placeholder="Email Address">
+        </div>
+        
+        <div class="input-group mt-1">
+          <label style="display: block; margin-bottom: 5px;">Utilized Products</label>
+          <div class="flex-row gap-0-5 flex-wrap">
+            <span *ngFor="let prod of editableProducts" 
+                  (click)="toggleClientProduct(client, prod.name)"
+                  class="badge" 
+                  [style.background]="isProductSelected(client, prod.name) ? 'var(--accent)' : 'rgba(255,255,255,0.1)'"
+                  [style.border]="isProductSelected(client, prod.name) ? '1px solid white' : '1px solid rgba(255,255,255,0.2)'"
+                  style="cursor: pointer; font-size: 0.75rem; padding: 4px 10px; transition: all 0.2s;">
+              {{prod.name}}
+            </span>
+            <p *ngIf="editableProducts.length === 0" style="font-size: 0.8rem; color: #888;">No products defined.</p>
+          </div>
+        </div>
+
+        <div class="flex-row gap-0-5 mt-1">
+          <button class="btn-primary btn-xs" (click)="saveClients()">💾 Save Client</button>
+          <button class="btn-primary btn-xs" (click)="quickInvoice(client.name)">🧾 Create Invoice</button>
+          <button class="btn-danger btn-xs" (click)="removeClient(i)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn-primary w-full mt-2" (click)="saveClients()">Publish Client List Updates</button>
+</section>

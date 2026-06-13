@@ -35,3 +35,16 @@ INSERT IGNORE INTO site_content (content_key, content_value, page) VALUES
 INSERT IGNORE INTO site_images (image_key, image_url) VALUES 
 ('hero_bg', '/assets/hero.png'),
 ('cloud_section_img', '/assets/cloud.png');
+
+CREATE TABLE IF NOT EXISTS scheduled_invoices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  client_name VARCHAR(255) NOT NULL,
+  service_name VARCHAR(255) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  frequency VARCHAR(50) NOT NULL,
+  start_date DATE NOT NULL,
+  next_bill_date DATE NOT NULL,
+  status VARCHAR(50) DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

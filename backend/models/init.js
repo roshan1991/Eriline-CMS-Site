@@ -45,6 +45,20 @@ async function initDB() {
         `);
 
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS scheduled_invoices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                client_name VARCHAR(255) NOT NULL,
+                service_name VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                frequency VARCHAR(50) NOT NULL,
+                start_date DATE NOT NULL,
+                next_bill_date DATE NOT NULL,
+                status VARCHAR(50) DEFAULT 'Active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS contact_messages (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,

@@ -41,6 +41,26 @@ export class CmsService {
     return this.http.patch(`${this.apiUrl}/invoices/${id}/status`, { status });
   }
 
+  getScheduledInvoices() {
+    return this.http.get<any[]>(`${this.apiUrl}/invoices/scheduled`);
+  }
+
+  createScheduledInvoice(data: any) {
+    return this.http.post(`${this.apiUrl}/invoices/scheduled`, data);
+  }
+
+  deleteScheduledInvoice(id: number) {
+    return this.http.delete(`${this.apiUrl}/invoices/scheduled/${id}`);
+  }
+
+  updateScheduledInvoiceStatus(id: number, status: string) {
+    return this.http.patch(`${this.apiUrl}/invoices/scheduled/${id}/status`, { status });
+  }
+
+  triggerScheduledInvoice(id: number) {
+    return this.http.post(`${this.apiUrl}/invoices/scheduled/${id}/trigger`, {});
+  }
+
   sendContactMessage(data: any) {
     return this.http.post(`${this.apiUrl}/contact`, data);
   }

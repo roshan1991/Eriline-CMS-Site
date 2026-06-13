@@ -1,3 +1,5 @@
+@import "@ng-select/ng-select/themes/default.theme.css";
+
 :root {
   --primary-dark: #070f21;
   --secondary-dark: #0a214d;
@@ -132,4 +134,178 @@ section {
 
 .animate-fade-in {
   animation: fadeInUp 0.8s ease-out forwards;
+}
+
+/* Reusable Admin UI Dashboard Utilities */
+.dash-section {
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.input-group input, .input-group select, .input-group textarea {
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  outline: none;
+  width: 100%;
+}
+
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-row {
+  display: flex;
+  align-items: center;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.gap-0-5 {
+  gap: 0.5rem;
+}
+
+.gap-1 {
+  gap: 1rem;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.badge {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-block;
+}
+
+.btn-xs {
+  font-size: 0.7rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-sm {
+  font-size: 0.85rem;
+  padding: 0.6rem 1.2rem;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+.quill-wrapper {
+  margin: 1.5rem 0;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  color: #333;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mb-1 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 2rem; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.p-1 { padding: 0.5rem; }
+
+/* ng-select dark theme customization */
+.ng-select.custom-dark-select .ng-select-container {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 8px !important;
+  color: var(--text-primary) !important;
+  min-height: 43px !important;
+}
+
+.ng-select.custom-dark-select .ng-select-container .ng-value-container .ng-input input {
+  color: var(--text-primary) !important;
+}
+
+.ng-select.custom-dark-select .ng-select-container .ng-value-container .ng-value {
+  color: var(--text-primary) !important;
+}
+
+.ng-select.custom-dark-select .ng-select-container .ng-value-container .ng-placeholder {
+  color: var(--text-secondary) !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel {
+  background: #0a214d !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 8px !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
+  background: #0a214d !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-marked {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected {
+  background: var(--accent) !important;
+  color: var(--primary-dark) !important;
+}
+
+.ng-select.custom-dark-select .ng-arrow-wrapper .ng-arrow {
+  border-color: var(--text-secondary) transparent transparent !important;
 }
