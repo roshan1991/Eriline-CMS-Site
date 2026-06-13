@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CmsService } from '../../../../services/cms.service';
 import { environment } from '../../../../../environments/environment';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-admin-portfolio',
@@ -11,13 +12,13 @@ import { environment } from '../../../../../environments/environment';
   templateUrl: './portfolio.component.html'
 })
 export class AdminPortfolioComponent implements OnInit {
-  contents: any[] = [];
-  editablePortfolio: any[] = [];
+  contents = new BehaviorSubject<any[]>([]);
+  editablePortfolio = new BehaviorSubject<any[]>([]);
   selectedFile: File | null = null;
   uploading = false;
   message = '';
 
-  constructor(private cms: CmsService) {}
+  constructor(private cms: CmsService) { }
 
   ngOnInit() {
     this.loadContent();
@@ -25,30 +26,30 @@ export class AdminPortfolioComponent implements OnInit {
 
   loadContent() {
     this.cms.getContent().subscribe(data => {
-      this.contents = data;
-      const portfolioItem = this.contents.find(i => i.content_key === 'portfolio_list');
+      this.contents.next(data);
+      const portfolioItem = this.contents.value.find(i => i.content_key === 'portfolio_list');
       if (portfolioItem) {
         try {
-          this.editablePortfolio = JSON.parse(portfolioItem.content_value);
+          this.editablePortfolio.next(JSON.parse(portfolioItem.content_value));
         } catch (e) {
-          this.editablePortfolio = [];
+          this.editablePortfolio.next([]);
         }
       }
     });
   }
 
   addPortfolioItem() {
-    this.editablePortfolio.push({ title: 'New Project', category: 'Software', image: '/startup.png' });
+    this.editablePortfolio.next([...this.editablePortfolio.value, { title: 'New Project', category: 'Software', image: '/startup.png' }]);
   }
 
   removePortfolioItem(index: number) {
-    this.editablePortfolio.splice(index, 1);
+    this.editablePortfolio.next(this.editablePortfolio.value.filter((_, i) => i !== index));
   }
 
   savePortfolio() {
-    const portfolioItem = this.contents.find(i => i.content_key === 'portfolio_list');
+    const portfolioItem = this.contents.value.find(i => i.content_key === 'portfolio_list');
     if (portfolioItem) {
-      portfolioItem.content_value = JSON.stringify(this.editablePortfolio);
+      portfolioItem.content_value = JSON.stringify(this.editablePortfolio.value);
       this.cms.updateContent(portfolioItem).subscribe(() => {
         this.showMessage('Portfolio updates published successfully!');
         this.loadContent();
@@ -61,17 +62,17 @@ export class AdminPortfolioComponent implements OnInit {
   }
 
   uploadListItemImage(item: any) {
-      if (!this.selectedFile) return;
-      this.uploading = true;
-      this.cms.uploadImage(this.selectedFile).subscribe({
-          next: (res) => {
-              item.image = res.url;
-              this.savePortfolio();
-              this.uploading = false;
-              this.selectedFile = null;
-          },
-          error: () => this.uploading = false
-      });
+    if (!this.selectedFile) return;
+    this.uploading = true;
+    this.cms.uploadImage(this.selectedFile).subscribe({
+      next: (res) => {
+        item.image = res.url;
+        this.savePortfolio();
+        this.uploading = false;
+        this.selectedFile = null;
+      },
+      error: () => this.uploading = false
+    });
   }
 
   getImageUrl(url: string) {

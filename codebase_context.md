@@ -13,6 +13,8 @@ This document provides a single-file representation of the codebase. It excludes
 - [.vscode/tasks.json](#file--vscode-tasks-json)
 - [README.md](#file-readme-md)
 - [angular.json](#file-angular-json)
+- [backend/.env](#file-backend--env)
+- [backend/.env.example](#file-backend--env-example)
 - [backend/config/db.js](#file-backend-config-db-js)
 - [backend/controllers/authController.js](#file-backend-controllers-authcontroller-js)
 - [backend/controllers/contactController.js](#file-backend-controllers-contactcontroller-js)
@@ -29,6 +31,7 @@ This document provides a single-file representation of the codebase. It excludes
 - [backend/routes/contentRoutes.js](#file-backend-routes-contentroutes-js)
 - [backend/routes/invoiceRoutes.js](#file-backend-routes-invoiceroutes-js)
 - [deploy-spaceship.bat](#file-deploy-spaceship-bat)
+- [kill_ports.ps1](#file-kill-ports-ps1)
 - [package.json](#file-package-json)
 - [release_spaceship.bat](#file-release-spaceship-bat)
 - [run_project.bat](#file-run-project-bat)
@@ -53,6 +56,18 @@ This document provides a single-file representation of the codebase. It excludes
 - [src/app/pages/admin/login/login.component.css](#file-src-app-pages-admin-login-login-component-css)
 - [src/app/pages/admin/login/login.component.html](#file-src-app-pages-admin-login-login-component-html)
 - [src/app/pages/admin/login/login.component.ts](#file-src-app-pages-admin-login-login-component-ts)
+- [src/app/pages/admin/pages/billing/billing.component.html](#file-src-app-pages-admin-pages-billing-billing-component-html)
+- [src/app/pages/admin/pages/billing/billing.component.ts](#file-src-app-pages-admin-pages-billing-billing-component-ts)
+- [src/app/pages/admin/pages/clients/clients.component.html](#file-src-app-pages-admin-pages-clients-clients-component-html)
+- [src/app/pages/admin/pages/clients/clients.component.ts](#file-src-app-pages-admin-pages-clients-clients-component-ts)
+- [src/app/pages/admin/pages/content-editor/content-editor.component.html](#file-src-app-pages-admin-pages-content-editor-content-editor-component-html)
+- [src/app/pages/admin/pages/content-editor/content-editor.component.ts](#file-src-app-pages-admin-pages-content-editor-content-editor-component-ts)
+- [src/app/pages/admin/pages/portfolio/portfolio.component.html](#file-src-app-pages-admin-pages-portfolio-portfolio-component-html)
+- [src/app/pages/admin/pages/portfolio/portfolio.component.ts](#file-src-app-pages-admin-pages-portfolio-portfolio-component-ts)
+- [src/app/pages/admin/pages/products/products.component.html](#file-src-app-pages-admin-pages-products-products-component-html)
+- [src/app/pages/admin/pages/products/products.component.ts](#file-src-app-pages-admin-pages-products-products-component-ts)
+- [src/app/pages/admin/pages/scheduled-billing/scheduled-billing.component.html](#file-src-app-pages-admin-pages-scheduled-billing-scheduled-billing-component-html)
+- [src/app/pages/admin/pages/scheduled-billing/scheduled-billing.component.ts](#file-src-app-pages-admin-pages-scheduled-billing-scheduled-billing-component-ts)
 - [src/app/pages/contact/contact.component.css](#file-src-app-pages-contact-contact-component-css)
 - [src/app/pages/contact/contact.component.html](#file-src-app-pages-contact-contact-component-html)
 - [src/app/pages/contact/contact.component.ts](#file-src-app-pages-contact-contact-component-ts)
@@ -70,6 +85,7 @@ This document provides a single-file representation of the codebase. It excludes
 - [src/app/pages/products/products.component.html](#file-src-app-pages-products-products-component-html)
 - [src/app/pages/products/products.component.ts](#file-src-app-pages-products-products-component-ts)
 - [src/app/services/auth.guard.ts](#file-src-app-services-auth-guard-ts)
+- [src/app/services/auth.interceptor.ts](#file-src-app-services-auth-interceptor-ts)
 - [src/app/services/auth.service.ts](#file-src-app-services-auth-service-ts)
 - [src/app/services/cms.service.ts](#file-src-app-services-cms-service-ts)
 - [src/environments/environment.development.ts](#file-src-environments-environment-development-ts)
@@ -440,6 +456,53 @@ For more information on using the Angular CLI, including detailed command refere
 
 ---
 
+### File: backend/.env
+
+```
+# Server Configuration
+PORT=5000
+
+# Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=SysAdmin@123
+DB_NAME=eriline_db
+
+# Security
+JWT_SECRET=super_secret_jwt_key_change_me_in_production
+
+# Email Service Configuration (Optional, used for inquiries & password reset)
+# For Gmail, you need to use an App Password: https://support.google.com/accounts/answer/185833
+EMAIL_USER=
+EMAIL_PASS=
+```
+
+---
+
+### File: backend/.env.example
+
+```
+# Server Configuration
+PORT=5000
+
+# Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=[PASSWORD]
+DB_NAME=eriline_db
+
+# Security
+# Set this to a strong random string in production
+JWT_SECRET=super_secret_jwt_key_change_me_in_production
+
+# Email Service Configuration (Optional, used for inquiries & password reset)
+# For Gmail, you need to use an App Password: https://support.google.com/accounts/answer/185833
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
+```
+
+---
+
 ### File: backend/config/db.js
 
 ```javascript
@@ -608,9 +671,20 @@ exports.updateContent = async (req, res) => {
     }
 };
 
-exports.uploadImage = (req, res) => {
+exports.uploadImage = async (req, res) => {
     if (!req.file) return res.status(400).send('No file uploaded.');
-    res.json({ url: `/uploads/${req.file.filename}` });
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const imageKey = req.file.filename;
+    const altText = req.file.originalname;
+    try {
+        await pool.query(
+            'INSERT INTO site_images (image_key, image_url, alt_text) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE image_url = ?',
+            [imageKey, imageUrl, altText, imageUrl]
+        );
+        res.json({ url: imageUrl });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };
 ```
 
@@ -661,6 +735,104 @@ exports.updateInvoiceStatus = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+exports.getAllScheduledInvoices = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM scheduled_invoices ORDER BY created_at DESC');
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.createScheduledInvoice = async (req, res) => {
+    const { client_name, service_name, amount, frequency, start_date } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO scheduled_invoices (client_name, service_name, amount, frequency, start_date, next_bill_date) VALUES (?, ?, ?, ?, ?, ?)',
+            [client_name, service_name, amount, frequency, start_date, start_date]
+        );
+        res.json({ message: 'Scheduled maintenance invoice created successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.deleteScheduledInvoice = async (req, res) => {
+    try {
+        await pool.query('DELETE FROM scheduled_invoices WHERE id = ?', [req.params.id]);
+        res.json({ message: 'Scheduled invoice deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.updateScheduledInvoiceStatus = async (req, res) => {
+    const { status } = req.body;
+    try {
+        await pool.query('UPDATE scheduled_invoices SET status = ? WHERE id = ?', [status, req.params.id]);
+        res.json({ message: 'Scheduled invoice status updated' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.triggerScheduledInvoice = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM scheduled_invoices WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) return res.status(404).json({ message: 'Scheduled invoice not found' });
+        
+        const sched = rows[0];
+        const invoiceNum = 'INV-SCH-' + Date.now().toString().slice(-5);
+        const issueDate = new Date().toISOString().split('T')[0];
+        const items = [{
+            description: `Maintenance fee for ${sched.service_name}`,
+            qty: 1,
+            price: sched.amount
+        }];
+
+        const conn = await pool.getConnection();
+        try {
+            await conn.beginTransaction();
+            
+            // 1. Create the real invoice
+            await conn.query(
+                'INSERT INTO invoices (invoice_number, client_name, amount, issue_date, status, items) VALUES (?, ?, ?, ?, ?, ?)',
+                [invoiceNum, sched.client_name, sched.amount, issueDate, 'Pending', JSON.stringify(items)]
+            );
+            
+            // 2. Calculate next bill date
+            const currentNextDate = new Date(sched.next_bill_date);
+            if (sched.frequency === 'Monthly') {
+                currentNextDate.setMonth(currentNextDate.getMonth() + 1);
+            } else if (sched.frequency === 'Quarterly') {
+                currentNextDate.setMonth(currentNextDate.getMonth() + 3);
+            } else if (sched.frequency === 'Bi-annually') {
+                currentNextDate.setMonth(currentNextDate.getMonth() + 6);
+            } else if (sched.frequency === 'Annually') {
+                currentNextDate.setFullYear(currentNextDate.getFullYear() + 1);
+            }
+            const newNextDateStr = currentNextDate.toISOString().split('T')[0];
+            
+            // 3. Update the scheduled invoice record
+            await conn.query(
+                'UPDATE scheduled_invoices SET next_bill_date = ? WHERE id = ?',
+                [newNextDateStr, sched.id]
+            );
+            
+            await conn.commit();
+            res.json({ message: `Invoice ${invoiceNum} generated successfully!` });
+        } catch (err) {
+            await conn.rollback();
+            throw err;
+        } finally {
+            conn.release();
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
 ```
 
 ---
@@ -705,6 +877,38 @@ INSERT IGNORE INTO site_content (content_key, content_value, page) VALUES
 INSERT IGNORE INTO site_images (image_key, image_url) VALUES 
 ('hero_bg', '/assets/hero.png'),
 ('cloud_section_img', '/assets/cloud.png');
+
+CREATE TABLE IF NOT EXISTS invoices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_number VARCHAR(50) UNIQUE NOT NULL,
+  client_name VARCHAR(255) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  issue_date DATE NOT NULL,
+  status VARCHAR(50) DEFAULT 'Pending',
+  items JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS scheduled_invoices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  client_name VARCHAR(255) NOT NULL,
+  service_name VARCHAR(255) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  frequency VARCHAR(50) NOT NULL,
+  start_date DATE NOT NULL,
+  next_bill_date DATE NOT NULL,
+  status VARCHAR(50) DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 ```
 
 ---
@@ -852,6 +1056,14 @@ async function initDB() {
         `);
 
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS site_images (
+                image_key VARCHAR(255) PRIMARY KEY,
+                image_url VARCHAR(255) NOT NULL,
+                alt_text VARCHAR(255)
+            )
+        `);
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS invoices (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 invoice_number VARCHAR(50) UNIQUE NOT NULL,
@@ -860,6 +1072,20 @@ async function initDB() {
                 issue_date DATE NOT NULL,
                 status VARCHAR(50) DEFAULT 'Pending',
                 items JSON NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS scheduled_invoices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                client_name VARCHAR(255) NOT NULL,
+                service_name VARCHAR(255) NOT NULL,
+                amount DECIMAL(10, 2) NOT NULL,
+                frequency VARCHAR(50) NOT NULL,
+                start_date DATE NOT NULL,
+                next_bill_date DATE NOT NULL,
+                status VARCHAR(50) DEFAULT 'Active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -1023,6 +1249,12 @@ const router = express.Router();
 const invoiceController = require('../controllers/invoiceController');
 const verifyToken = require('../middlewares/auth');
 
+router.get('/scheduled', verifyToken, invoiceController.getAllScheduledInvoices);
+router.post('/scheduled', verifyToken, invoiceController.createScheduledInvoice);
+router.delete('/scheduled/:id', verifyToken, invoiceController.deleteScheduledInvoice);
+router.patch('/scheduled/:id/status', verifyToken, invoiceController.updateScheduledInvoiceStatus);
+router.post('/scheduled/:id/trigger', verifyToken, invoiceController.triggerScheduledInvoice);
+
 router.get('/', verifyToken, invoiceController.getAllInvoices);
 router.post('/', verifyToken, invoiceController.createInvoice);
 router.delete('/:id', verifyToken, invoiceController.deleteInvoice);
@@ -1035,7 +1267,7 @@ module.exports = router;
 
 ### File: deploy-spaceship.bat
 
-```cmd
+```batch
 @echo off
 REM Deploy script for Eriline Site to Spaceship Server
 
@@ -1122,6 +1354,16 @@ pause
 
 ---
 
+### File: kill_ports.ps1
+
+```powershell
+Get-NetTCPConnection -LocalPort 5000, 4200 -State Listen -ErrorAction SilentlyContinue | ForEach-Object {
+    Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+}
+```
+
+---
+
 ### File: package.json
 
 ```json
@@ -1144,6 +1386,7 @@ pause
     "@angular/forms": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
+    "@ng-select/ng-select": "^23.0.1",
     "ngx-quill": "^30.0.1",
     "quill": "^2.0.3",
     "rxjs": "~7.8.0",
@@ -1165,7 +1408,7 @@ pause
 
 ### File: release_spaceship.bat
 
-```cmd
+```batch
 @echo off
 setlocal enabledelayedexpansion
 
@@ -1258,7 +1501,7 @@ pause
 
 ### File: run_project.bat
 
-```cmd
+```batch
 @echo off
 title Eriline Full-Stack Launcher
 color 0A
@@ -1267,10 +1510,28 @@ echo       ERI-LINE PROJECT LAUNCHER
 echo ==========================================
 echo.
 
-echo [1/2] Starting Backend Server (MySQL & Node)...
+echo Checking ports 4200 and 5000...
+powershell -ExecutionPolicy Bypass -File "%~dp0kill_ports.ps1"
+echo.
+
+REM Check frontend node_modules
+if not exist "node_modules" (
+    echo [0/2] Installing frontend dependencies for Angular...
+    call npm install
+)
+
+REM Check backend node_modules
+if not exist "backend\node_modules" (
+    echo [0/2] Installing backend dependencies for Node.js...
+    cd backend
+    call npm install
+    cd ..
+)
+
+echo [1/2] Starting Backend Server for MySQL and Node...
 start "Eriline Backend" cmd /k "cd backend && node index.js"
 
-echo [2/2] Starting Frontend Dev Server (Angular)...
+echo [2/2] Starting Frontend Dev Server for Angular...
 echo Note: This window will stay open to show frontend logs.
 npm start
 
@@ -1284,11 +1545,15 @@ pause
 ```typescript
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { routes } from './app.routes';
+import { authInterceptor } from './services/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideRouter(routes), provideHttpClient()]
+  providers: [
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([authInterceptor]))
+  ]
 };
 ```
 
@@ -1337,7 +1602,23 @@ export const routes: Routes = [
   { path: 'portfolio', component: PortfolioComponent },
   { path: 'contact', component: ContactComponent },
   { path: 'admin/login', component: LoginComponent },
-  { path: 'admin/dashboard', component: DashboardComponent, canActivate: [authGuard] },
+  { 
+    path: 'admin/dashboard', 
+    component: DashboardComponent, 
+    canActivate: [authGuard],
+    children: [
+      { path: '', redirectTo: 'home', pathMatch: 'full' },
+      { path: 'home', loadComponent: () => import('./pages/admin/pages/content-editor/content-editor.component').then(m => m.AdminContentEditorComponent), data: { page: 'home' } },
+      { path: 'about', loadComponent: () => import('./pages/admin/pages/content-editor/content-editor.component').then(m => m.AdminContentEditorComponent), data: { page: 'about' } },
+      { path: 'products', loadComponent: () => import('./pages/admin/pages/products/products.component').then(m => m.AdminProductsComponent) },
+      { path: 'portfolio', loadComponent: () => import('./pages/admin/pages/portfolio/portfolio.component').then(m => m.AdminPortfolioComponent) },
+      { path: 'clients', loadComponent: () => import('./pages/admin/pages/clients/clients.component').then(m => m.AdminClientsComponent) },
+      { path: 'billing', loadComponent: () => import('./pages/admin/pages/billing/billing.component').then(m => m.AdminBillingComponent) },
+      { path: 'scheduled-billing', loadComponent: () => import('./pages/admin/pages/scheduled-billing/scheduled-billing.component').then(m => m.AdminScheduledBillingComponent) },
+      { path: 'contact', loadComponent: () => import('./pages/admin/pages/content-editor/content-editor.component').then(m => m.AdminContentEditorComponent), data: { page: 'contact' } },
+      { path: 'seo', loadComponent: () => import('./pages/admin/pages/content-editor/content-editor.component').then(m => m.AdminContentEditorComponent), data: { page: 'seo' } }
+    ]
+  },
   { path: '**', redirectTo: '' }
 ];
 ```
@@ -2300,130 +2581,41 @@ export class AboutComponent implements OnInit {
   margin-top: 0.3rem;
 }
 
-.dash-section {
-  padding: 2.5rem;
-  margin-bottom: 2rem;
-}
-
-.input-group {
+/* Submenu Styles */
+.submenu {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 1.5rem;
+  margin-top: 0.25rem;
+}
+
+.submenu-item {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
-}
-
-.input-group label {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.input-group input {
-  padding: 0.8rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary) !important;
   border-radius: 8px;
-  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.flex-2 { flex: 2; }
-.mb-1 { margin-bottom: 1rem; }
-.mb-2 { margin-bottom: 2rem; }
+.submenu-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: var(--text-primary) !important;
+}
 
-.tier-label-main {
+.submenu-item.active {
+  background: var(--glass) !important;
   color: var(--accent) !important;
-  font-weight: 700 !important;
-  font-size: 0.9rem !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-.tier-inputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 0.8rem;
-}
-
-.content-item {
-  margin-bottom: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--glass-border);
-}
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.key-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+.submenu-dot {
   color: var(--accent);
-  letter-spacing: 1px;
-}
-
-.mini-hero {
-  width: 120px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 8px;
-}
-
-.hero-upload-preview {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-}
-
-.grid-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-}
-
-.portfolio-edit-item {
-  padding: 1.5rem;
-  display: flex;
-  gap: 1.5rem;
-}
-
-.proj-img-preview {
-  width: 150px;
-}
-
-.proj-img-preview img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: 12px;
-}
-
-.proj-fields {
-  flex: 1;
-}
-
-.btn-xs {
-  font-size: 0.7rem;
-  padding: 0.4rem 0.8rem;
-}
-
-.mt-1 { margin-top: 1rem; }
-
-.btn-icon {
-  padding: 0.5rem;
-  font-size: 1.2rem;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: 8px;
-}
-
-.quill-wrapper {
-  margin: 1.5rem 0;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  color: #333;
+  opacity: 0.7;
 }
 ```
 
@@ -2440,13 +2632,44 @@ export class AboutComponent implements OnInit {
 
     <nav>
       <div class="nav-section-label">PAGES</div>
-      <a *ngFor="let page of pages" [class.active]="selectedPage === page.id" (click)="filterPage(page.id)">
-        <span class="nav-icon">{{page.icon}}</span>
-        {{page.label}}
-      </a>
+      <div *ngFor="let page of pages" class="nav-item-wrapper">
+        <!-- Main Menu Item (No Submenu) -->
+        <a *ngIf="!page.submenu"
+           [routerLink]="['/admin/dashboard', page.id]"
+           routerLinkActive="active"
+           style="display: flex; align-items: center; gap: 0.8rem; width: 100%;">
+          <span class="nav-icon">{{page.icon}}</span>
+          {{page.label}}
+        </a>
+
+        <!-- Main Menu Item (With Submenu) -->
+        <a *ngIf="page.submenu"
+           [class.active]="isSubmenuActive(page)"
+           (click)="selectPage(page)"
+           style="display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <span class="nav-icon">{{page.icon}}</span>
+            {{page.label}}
+          </div>
+          <span class="submenu-arrow" style="font-size: 0.6rem; opacity: 0.7;">
+            {{ isSubmenuActive(page) ? '▼' : '▶' }}
+          </span>
+        </a>
+
+        <!-- Submenu rendering -->
+        <div *ngIf="page.submenu && isSubmenuActive(page)" class="submenu" style="padding-left: 1.5rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
+          <a *ngFor="let sub of page.submenu" 
+             [routerLink]="['/admin/dashboard', sub.id]"
+             routerLinkActive="active"
+             class="submenu-item"
+             style="padding: 0.5rem 0.8rem; font-size: 0.85rem; border-radius: 8px;">
+             <span class="submenu-dot">•</span> {{sub.label}}
+          </a>
+        </div>
+      </div>
 
       <div class="nav-section-label mt-2">ACCOUNT</div>
-      <a (click)="auth.logout()" class="logout-link">
+      <a (click)="auth.logout()" class="logout-link" style="cursor: pointer;">
         <span class="nav-icon">🚪</span>
         Logout
       </a>
@@ -2484,309 +2707,8 @@ export class AboutComponent implements OnInit {
       </div>
     </div>
 
-    <div *ngIf="message" class="alert-success animate-fade-in">{{message}}</div>
-
-    <!-- Product Manager -->
-    <section *ngIf="selectedPage === 'products'" class="dash-section glass-card">
-      <div class="flex-between mb-2">
-        <h3>Software Catalog Editor</h3>
-        <button class="btn-primary" (click)="addProduct()">+ New Product</button>
-      </div>
-
-      <div class="product-manager-list">
-        <div *ngFor="let prod of editableProducts; let i = index" class="product-edit-item glass-card mb-1">
-          <div class="prod-row">
-            <div class="input-group">
-              <label>ID (URL Slug)</label>
-              <input [(ngModel)]="prod.id" placeholder="e.g. pos">
-            </div>
-            <div class="input-group flex-2">
-              <label>System Name</label>
-              <input [(ngModel)]="prod.name" placeholder="Product Name">
-            </div>
-            <div class="input-group">
-              <label>Type / Badge</label>
-              <input [(ngModel)]="prod.type" placeholder="Type (e.g. POS)">
-            </div>
-            <div class="input-group">
-              <label>Icon</label>
-              <input [(ngModel)]="prod.icon" placeholder="💡" style="width: 50px; text-align: center;">
-            </div>
-            <button class="btn-danger btn-icon" style="align-self: flex-end; margin-bottom: 5px;"
-              (click)="removeProduct(i)">🗑️</button>
-          </div>
-
-          <div class="input-group mt-1">
-            <label>Short Description (Card View)</label>
-            <input [(ngModel)]="prod.shortDesc" placeholder="Brief summary of the product...">
-          </div>
-
-          <div class="features-edit-row mt-1 p-1" style="background: rgba(0,0,0,0.1); border-radius: 8px;">
-            <label class="field-label flex-between">
-              <span>Key Features (Card View)</span>
-              <button class="btn-primary btn-xs" (click)="$any(this).addProductFeature(i)">+ Add Feature</button>
-            </label>
-            <div *ngFor="let feat of prod.features; let fIndex = index; trackBy: trackByIndex"
-              class="flex-between mt-1">
-              <input [(ngModel)]="prod.features[fIndex]" class="w-full" style="margin-right: 10px;"
-                placeholder="Feature detail...">
-              <button class="btn-danger btn-xs" (click)="$any(this).removeProductFeature(i, fIndex)">X</button>
-            </div>
-          </div>
-
-          <div class="quill-wrapper mt-2">
-            <label class="field-label">Rich Description (Details Page)</label>
-            <quill-editor [(ngModel)]="prod.description" [modules]="quillConfig" theme="snow">
-            </quill-editor>
-          </div>
-        </div>
-      </div>
-      <button class="btn-primary w-full mt-2" (click)="saveProducts()">Publish Catalog Updates</button>
-    </section>
-
-    <!-- Portfolio Manager -->
-    <section *ngIf="selectedPage === 'portfolio'" class="dash-section glass-card">
-      <div class="flex-between mb-2">
-        <h3>Project Showcase Manager</h3>
-        <button class="btn-primary" (click)="$any(this).addPortfolioItem()">+ Add Project</button>
-      </div>
-
-      <div class="portfolio-manager-list grid-2">
-        <div *ngFor="let proj of editablePortfolio; let i = index" class="portfolio-edit-item glass-card mb-1">
-          <div class="proj-img-preview">
-            <img [src]="getImageUrl(proj.image)">
-            <div class="img-controls mt-1">
-              <input type="file" (change)="onFileSelected($event)">
-              <button class="btn-primary btn-xs mt-1" [disabled]="uploading"
-                (click)="uploadListItemImage(proj, 'portfolio')">
-                {{uploading ? 'Processing...' : 'Change Image'}}
-              </button>
-            </div>
-          </div>
-          <div class="proj-fields mt-1">
-            <div class="input-group">
-              <label>Project Title</label>
-              <input [(ngModel)]="proj.title" placeholder="Project Title">
-            </div>
-            <div class="input-group mt-1">
-              <label>Category</label>
-              <input [(ngModel)]="proj.category" placeholder="Category">
-            </div>
-            <button class="btn-danger btn-xs mt-1" (click)="removePortfolioItem(i)">Remove Project</button>
-          </div>
-        </div>
-      </div>
-      <button class="btn-primary w-full mt-2" (click)="savePortfolio()">Publish Portfolio Updates</button>
-    </section>
-
-    <!-- Client Manager -->
-    <section *ngIf="selectedPage === 'clients'" class="dash-section glass-card">
-      <div class="flex-between mb-2">
-        <h3>Corporate Clients & Partners</h3>
-        <button class="btn-primary" (click)="addClient()">+ Add Client</button>
-      </div>
-
-      <div class="portfolio-manager-list grid-2">
-        <div *ngFor="let client of editableClients; let i = index" class="portfolio-edit-item glass-card mb-1">
-          <div class="proj-img-preview">
-            <img [src]="getImageUrl(client.logo)"
-              style="background: white; padding: 10px; border-radius: 8px; object-fit: contain;">
-            <div class="img-controls mt-1">
-              <input type="file" (change)="onFileSelected($event)">
-              <button class="btn-primary btn-xs mt-1" [disabled]="uploading"
-                (click)="uploadListItemImage(client, 'clients')">
-                {{uploading ? 'Processing...' : 'Update Logo'}}
-              </button>
-            </div>
-          </div>
-          <div class="proj-fields mt-1">
-            <div class="input-group">
-              <label>Client Name</label>
-              <input [(ngModel)]="client.name" placeholder="Client Name">
-            </div>
-            <div class="input-group mt-1">
-              <label>Industry</label>
-              <input [(ngModel)]="client.industry" placeholder="Industry">
-            </div>
-            <div class="input-group mt-1">
-              <label>Address</label>
-              <input [(ngModel)]="client.address" placeholder="Client Address">
-            </div>
-            <div class="input-group mt-1">
-              <label>Phone Number</label>
-              <input [(ngModel)]="client.phone" placeholder="Phone Number">
-            </div>
-            <div class="input-group mt-1">
-              <label>Email Address</label>
-              <input [(ngModel)]="client.email" placeholder="Email Address">
-            </div>
-            
-            <div class="input-group mt-1">
-              <label style="display: block; margin-bottom: 5px;">Utilized Products</label>
-              <div class="flex-row gap-0-5 flex-wrap">
-                <span *ngFor="let prod of editableProducts" 
-                      (click)="toggleClientProduct(client, prod.name)"
-                      class="badge" 
-                      [style.background]="isProductSelected(client, prod.name) ? 'var(--accent)' : 'rgba(255,255,255,0.1)'"
-                      [style.border]="isProductSelected(client, prod.name) ? '1px solid white' : '1px solid rgba(255,255,255,0.2)'"
-                      style="cursor: pointer; font-size: 0.75rem; padding: 4px 10px; transition: all 0.2s;">
-                  {{prod.name}}
-                </span>
-                <p *ngIf="editableProducts.length === 0" style="font-size: 0.8rem; color: #888;">No products defined.</p>
-              </div>
-            </div>
-
-            <div class="flex-row gap-0-5 mt-1">
-              <button class="btn-primary btn-xs" (click)="quickInvoice(client.name)">🧾 Create Invoice</button>
-              <button class="btn-danger btn-xs" (click)="removeClient(i)">🗑️</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <button class="btn-primary w-full mt-2" (click)="saveClients()">Publish Client List Updates</button>
-    </section>
-
-    <!-- Invoicing / Billing Manager -->
-    <section *ngIf="selectedPage === 'billing'" class="dash-section glass-card">
-      <div class="flex-between mb-2">
-        <h3>Invoice Generator</h3>
-        <span class="badge">PRO VERSION</span>
-      </div>
-
-      <div class="invoice-creator glass-card mb-2"
-        style="background: rgba(10, 33, 77, 0.2); border: 1px solid var(--accent);">
-        <h4 class="mb-1">Create New Invoice</h4>
-        <div class="grid-2">
-          <div class="input-group">
-            <label>Client Name</label>
-            <select [(ngModel)]="newInvoice.client_name">
-              <option value="">Select a Client</option>
-              <option *ngFor="let c of editableClients" [value]="c.name">{{c.name}}</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label>Invoice #</label>
-            <input [(ngModel)]="newInvoice.invoice_number">
-          </div>
-        </div>
-
-        <div class="items-table mt-1">
-          <div class="flex-between mb-1">
-            <label>Line Items</label>
-            <button class="btn-primary btn-xs" (click)="addInvoiceItem()">+ Add Item</button>
-          </div>
-          <div *ngFor="let item of newInvoice.items; let i = index; trackBy: trackByIndex" class="flex-row gap-1 mb-1">
-            <input [(ngModel)]="item.description" placeholder="Description" style="flex: 3;">
-            <input type="number" [(ngModel)]="item.qty" placeholder="Qty" style="flex: 0.5;">
-            <input type="number" [(ngModel)]="item.price" placeholder="Price" style="flex: 1;">
-            <button class="btn-danger btn-xs" (click)="removeInvoiceItem(i)">X</button>
-          </div>
-        </div>
-
-        <div class="flex-between mt-2 pt-1" style="border-top: 1px solid var(--glass-border);">
-          <div class="total-preview">
-            <strong>Total Amount: </strong>
-            <span style="color: var(--accent); font-size: 1.2rem;">${{calculateTotal() | number}}</span>
-          </div>
-          <button class="btn-primary" [disabled]="!newInvoice.client_name || newInvoice.amount <= 0"
-            (click)="saveInvoice()">Generate & Save Invoice</button>
-        </div>
-      </div>
-
-      <h3>Recent Invoices</h3>
-      <div class="invoice-list mt-1">
-        <table class="w-full" style="border-collapse: collapse; text-align: left;width: 100%;">
-          <thead>
-            <tr style="border-bottom: 2px solid var(--glass-border); color: var(--text-secondary); font-size: 0.8rem;">
-              <th class="p-1"># NUMBER</th>
-              <th class="p-1">CLIENT</th>
-              <th class="p-1">DATE</th>
-              <th class="p-1">AMOUNT</th>
-              <th class="p-1">STATUS</th>
-              <th class="p-1">ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let inv of invoices" style="border-bottom: 1px solid var(--glass-border);">
-              <td class="p-1"><strong>{{inv.invoice_number}}</strong></td>
-              <td class="p-1">{{inv.client_name}}</td>
-              <td class="p-1">{{inv.issue_date | date}}</td>
-              <td class="p-1" style="color: var(--accent); font-weight: 600;">${{inv.amount | number}}</td>
-              <td class="p-1">
-                <span class="badge" [style.background]="inv.status === 'Paid' ? '#28a745' : '#dc3545'" 
-                      (click)="toggleInvoiceStatus(inv)" style="cursor: pointer;" title="Click to toggle status">
-                  {{inv.status}}
-                </span>
-              </td>
-              <td class="p-1 flex-row gap-0-5">
-                <button class="btn-primary btn-xs" (click)="printInvoice(inv)">📄 Print</button>
-                <button class="btn-danger btn-xs" (click)="deleteInvoice(inv.id)">🗑️</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <p *ngIf="invoices.length === 0" class="empty-state mt-2">No invoices generated yet.</p>
-      </div>
-    </section>
-
-    <!-- SEO & Analytics Manager -->
-    <section *ngIf="selectedPage === 'home'" class="dash-section glass-card">
-      <div class="flex-between mb-2">
-        <h3>SEO & Google Analytics</h3>
-      </div>
-      <div class="input-group">
-        <label>Google Analytics Tracking ID (e.g. G-XXXXXXXXXX)</label>
-        <div style="display: flex; gap: 10px;">
-          <input [(ngModel)]="gaTrackingId" placeholder="Leave empty to disable tracking" style="flex: 1;">
-          <button class="btn-primary" (click)="saveAnalytics()">Save Analytics Config</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Generic Content Editor -->
-    <section class="dash-section glass-card">
-      <h3 class="flex-between">Content Editor <span class="badge">{{selectedPage}}</span></h3>
-      <div class="content-table" *ngIf="filteredContents.length > 0; else noContent">
-        <div *ngFor="let item of filteredContents" class="content-item">
-
-          <!-- Image Upload Fields -->
-          <ng-container *ngIf="item.content_key.endsWith('_image_url')">
-            <div class="item-header">
-              <span class="key-label">{{item.content_key | uppercase}}</span>
-            </div>
-            <div class="hero-upload-preview">
-              <img [src]="getImageUrl(item.content_value)" class="mini-hero">
-              <input type="file" (change)="onFileSelected($event)">
-              <button class="btn-primary btn-sm" [disabled]="uploading"
-                (click)="uploadCmsImage(item.content_key, item.page)">
-                {{uploading ? 'Uploading...' : 'Upload Image'}}
-              </button>
-            </div>
-          </ng-container>
-
-          <!-- Text Fields -->
-          <ng-container *ngIf="item.content_key !== 'products_list' && !item.content_key.endsWith('_image_url')">
-            <div class="item-header">
-              <span class="key-label">{{item.content_key}}</span>
-              <button class="btn-primary btn-xs" (click)="saveContent(item)">Save Item</button>
-            </div>
-
-            <div *ngIf="richTextKeys.includes(item.content_key); else plainText" class="quill-wrapper">
-              <quill-editor [(ngModel)]="item.content_value" [modules]="quillConfig" theme="snow">
-              </quill-editor>
-            </div>
-
-            <ng-template #plainText>
-              <textarea [(ngModel)]="item.content_value" rows="3"></textarea>
-            </ng-template>
-          </ng-container>
-
-        </div>
-      </div>
-      <ng-template #noContent>
-        <p class="empty-state">No editable fields found for this page yet.</p>
-      </ng-template>
-    </section>
+    <!-- Active Child Page Render Target -->
+    <router-outlet></router-outlet>
   </main>
 </div>
 ```
@@ -2798,53 +2720,18 @@ export class AboutComponent implements OnInit {
 ```typescript
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { CmsService } from '../../../services/cms.service';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../services/auth.service';
-import { QuillModule } from 'ngx-quill';
-import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuillModule],
+  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit {
-  contents: any[] = [];
-  filteredContents: any[] = [];
   selectedPage = 'home';
-  selectedFile: File | null = null;
-  uploading = false;
-  message = '';
-
-  editableProducts: any[] = [];
-  editablePortfolio: any[] = [];
-  editableClients: any[] = [];
-  invoices: any[] = [];
-  gaTrackingId: string = '';
-  
-  newInvoice: any = {
-    invoice_number: 'INV-' + Date.now().toString().slice(-6),
-    client_name: '',
-    issue_date: new Date().toISOString().split('T')[0],
-    amount: 0,
-    status: 'Pending',
-    items: [{ description: '', qty: 1, price: 0 }]
-  };
-
-  richTextKeys = [
-    'hero_subtitle', 
-    'about_title',
-    'about_subtitle',
-    'about_story_text', 
-    'about_mission_text', 
-    'about_vision_text', 
-    'products_subtitle', 
-    'portfolio_subtitle', 
-    'contact_subtitle'
-  ];
 
   pages = [
     { id: 'home', label: 'Home', icon: '🏠' },
@@ -2852,7 +2739,15 @@ export class DashboardComponent implements OnInit {
     { id: 'products', label: 'Products', icon: '📦' },
     { id: 'portfolio', label: 'Portfolio', icon: '🎨' },
     { id: 'clients', label: 'Clients', icon: '🤝' },
-    { id: 'billing', label: 'Invoices', icon: '🧾' },
+    { 
+      id: 'billing', 
+      label: 'Invoices', 
+      icon: '🧾',
+      submenu: [
+        { id: 'billing', label: 'Invoice Generator' },
+        { id: 'scheduled-billing', label: 'Scheduled Maintenance' }
+      ]
+    },
     { id: 'contact', label: 'Contact', icon: '📧' },
     { id: 'seo', label: 'SEO Settings', icon: '🔍' }
   ];
@@ -2863,496 +2758,35 @@ export class DashboardComponent implements OnInit {
     { label: 'Live Projects', value: '6', icon: '🚀' }
   ];
 
-  quillConfig = {
-    toolbar: [
-      ['bold', 'italic', 'underline'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-      ['clean'],
-      ['link']
-    ]
-  };
-
-  constructor(private cms: CmsService, public auth: AuthService) {}
+  constructor(public auth: AuthService, private router: Router) {
+    // Synchronize active menu state with route transitions
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        const urlSegments = event.urlAfterRedirects.split('/');
+        const lastSegment = urlSegments[urlSegments.length - 1];
+        this.selectedPage = lastSegment || 'home';
+      }
+    });
+  }
 
   ngOnInit() {
-    this.loadContent();
+    // Initial sync
+    const urlSegments = this.router.url.split('/');
+    const lastSegment = urlSegments[urlSegments.length - 1];
+    this.selectedPage = lastSegment && lastSegment !== 'dashboard' ? lastSegment : 'home';
   }
 
-  loadContent() {
-    this.cms.getContent().subscribe(data => {
-      this.contents = data;
-      this.stats[1].value = data.length.toString();
-      this.filterPage(this.selectedPage);
-    });
+  isSubmenuActive(page: any): boolean {
+    if (!page.submenu) return false;
+    return page.submenu.some((sub: any) => sub.id === this.selectedPage);
   }
 
-  filterPage(pageId: string) {
-    this.selectedPage = pageId;
-    this.filteredContents = this.contents.filter(item => item.page === pageId);
-    
-    // Analytics ID extraction
-    const gaItem = this.contents.find(i => i.content_key === 'ga_tracking_id');
-    if (gaItem) this.gaTrackingId = gaItem.content_value;
-    else this.gaTrackingId = '';
-
-    // Products
-    const productItem = this.filteredContents.find(i => i.content_key === 'products_list');
-    if (productItem) {
-      try { this.editableProducts = JSON.parse(productItem.content_value); } catch (e) { this.editableProducts = []; }
-    }
-
-    // Portfolio
-    const portfolioItem = this.filteredContents.find(i => i.content_key === 'portfolio_list');
-    if (portfolioItem) {
-      try { 
-        this.editablePortfolio = JSON.parse(portfolioItem.content_value); 
-        this.stats[2].value = this.editablePortfolio.length.toString();
-      } catch (e) { this.editablePortfolio = []; }
-    }
-
-    // Clients
-    const clientsItem = this.contents.find(i => i.content_key === 'clients_list');
-    if (clientsItem) {
-       try { this.editableClients = JSON.parse(clientsItem.content_value); } catch (e) { this.editableClients = []; }
-    }
-
-    if (pageId === 'billing') {
-      this.loadInvoices();
-    }
-  }
-
-  saveAnalytics() {
-    this.cms.updateContent({ content_key: 'ga_tracking_id', content_value: this.gaTrackingId || '', page: 'global' }).subscribe(() => {
-      this.showMessage('Analytics settings updated successfully!');
-      this.loadContent();
-    });
-  }
-
-  saveContent(item: any) {
-    this.cms.updateContent(item).subscribe(() => {
-      this.showMessage('Content updated successfully!');
-      this.loadContent();
-    });
-  }
-
-  saveProducts() {
-    const productItem = this.contents.find(i => i.content_key === 'products_list');
-    if (productItem) {
-      productItem.content_value = JSON.stringify(this.editableProducts);
-      this.saveContent(productItem);
-    }
-  }
-
-  savePortfolio() {
-    const portfolioItem = this.contents.find(i => i.content_key === 'portfolio_list');
-    if (portfolioItem) {
-      portfolioItem.content_value = JSON.stringify(this.editablePortfolio);
-      this.saveContent(portfolioItem);
-    }
-  }
-
-  saveClients() {
-    this.cms.updateContent({ content_key: 'clients_list', content_value: JSON.stringify(this.editableClients), page: 'clients' }).subscribe(() => {
-        this.showMessage('Client list published successfully!');
-        this.loadContent();
-    });
-  }
-
-  addPortfolioItem() {
-    this.editablePortfolio.push({ title: 'New Project', category: 'Software', image: '/startup.png' });
-  }
-
-  removePortfolioItem(index: number) {
-    this.editablePortfolio.splice(index, 1);
-  }
-
-  addClient() {
-    this.editableClients.push({ 
-      name: 'New Client', 
-      industry: 'Retail', 
-      logo: '/client-1.png',
-      address: '',
-      phone: '',
-      email: '',
-      products: [] 
-    });
-  }
-
-  toggleClientProduct(client: any, productName: string) {
-    if (!client.products) client.products = [];
-    const index = client.products.indexOf(productName);
-    if (index > -1) {
-      client.products.splice(index, 1);
+  selectPage(page: any) {
+    if (page.submenu && page.submenu.length > 0) {
+      this.router.navigate(['/admin/dashboard', page.submenu[0].id]);
     } else {
-      client.products.push(productName);
+      this.router.navigate(['/admin/dashboard', page.id]);
     }
-  }
-
-  isProductSelected(client: any, productName: string) {
-    return client.products && client.products.includes(productName);
-  }
-
-  removeClient(index: number) {
-    this.editableClients.splice(index, 1);
-  }
-
-  quickInvoice(clientName: string) {
-    this.newInvoice.client_name = clientName;
-    this.filterPage('billing');
-  }
-
-  // --- Invoice Methods ---
-  loadInvoices() {
-    this.cms.getInvoices().subscribe(data => {
-      this.invoices = data.map(inv => ({ 
-        ...inv, 
-        items: typeof inv.items === 'string' ? JSON.parse(inv.items) : inv.items 
-      }));
-    });
-  }
-
-  addInvoiceItem() {
-    this.newInvoice.items.push({ description: '', qty: 1, price: 0 });
-  }
-
-  removeInvoiceItem(index: number) {
-    this.newInvoice.items.splice(index, 1);
-  }
-
-  calculateTotal() {
-    this.newInvoice.amount = this.newInvoice.items.reduce((acc: number, item: any) => acc + (item.qty * item.price), 0);
-    return this.newInvoice.amount;
-  }
-
-  saveInvoice() {
-    this.calculateTotal();
-    this.cms.createInvoice(this.newInvoice).subscribe(() => {
-        this.showMessage('Invoice generated successfully!');
-        this.loadInvoices();
-        this.newInvoice = {
-            invoice_number: 'INV-' + Date.now().toString().slice(-6),
-            client_name: '',
-            issue_date: new Date().toISOString().split('T')[0],
-            amount: 0,
-            status: 'Pending',
-            items: [{ description: '', qty: 1, price: 0 }]
-        };
-    });
-  }
-
-  deleteInvoice(id: number) {
-    if (confirm('Are you sure you want to delete this invoice?')) {
-        this.cms.deleteInvoice(id).subscribe(() => {
-            this.showMessage('Invoice deleted');
-            this.loadInvoices();
-        });
-    }
-  }
-
-  toggleInvoiceStatus(inv: any) {
-    const newStatus = inv.status === 'Paid' ? 'Pending' : 'Paid';
-    this.cms.updateInvoiceStatus(inv.id, newStatus).subscribe(() => {
-        inv.status = newStatus;
-        this.showMessage(`Invoice #${inv.invoice_number} marked as ${newStatus}`);
-    });
-  }
-
-  printInvoice(inv: any) {
-    const client = this.editableClients.find(c => c.name === inv.client_name);
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-
-    const itemsHtml = inv.items.map((it: any, index: number) => `
-        <tr style="background: ${index % 2 === 0 ? '#fff' : '#ffe9da'};">
-            <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: 500;">${it.description}</td>
-            <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: center;">${it.qty || ''}</td>
-            <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500;">${Number(it.price * (it.qty || 1)).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-        </tr>
-    `).join('');
-
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Eriline Invoice - ${inv.invoice_number}</title>
-                <style>
-                    @page { size: A4; margin: 0; }
-                    body { 
-                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-                        margin: 0; 
-                        padding: 0;
-                        -webkit-print-color-adjust: exact;
-                        color: #333;
-                    }
-                    .a4-container {
-                        width: 210mm;
-                        min-height: 297mm;
-                        margin: auto;
-                        background: #fff;
-                        position: relative;
-                        display: flex;
-                        flex-direction: column;
-                    }
-                    .top-header {
-                        height: 120px;
-                        display: flex;
-                        align-items: flex-end;
-                        position: relative;
-                        overflow: hidden;
-                    }
-                    .header-accent-yellow {
-                        position: absolute;
-                        top: 0; left: 0;
-                        width: 45%;
-                        height: 100px;
-                        background: #F2A93B;
-                        clip-path: polygon(0 0, 90% 0, 100% 100%, 0% 100%);
-                    }
-                    .header-accent-navy {
-                        position: absolute;
-                        top: 20px; left: 40%;
-                        width: 60%;
-                        height: 80px;
-                        background: #0A214D;
-                        clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
-                    }
-                    .header-logo-container {
-                        position: absolute;
-                        top: 25px;
-                        left: 50px;
-                        z-index: 10;
-                        background: #0A214D;
-                        padding: 10px 20px;
-                        border-radius: 4px;
-                        border-left: 8px solid #F2A93B;
-                    }
-                    .date-box {
-                        position: absolute;
-                        top: 70px;
-                        right: 0;
-                        background: #e9ecef;
-                        padding: 8px 40px;
-                        font-weight: 500;
-                        font-size: 14px;
-                    }
-                    .client-info {
-                        padding: 40px 60px;
-                        font-size: 15px;
-                        line-height: 1.6;
-                    }
-                    .items-table {
-                        width: calc(100% - 120px);
-                        margin: 0 60px;
-                        border-collapse: collapse;
-                    }
-                    .items-table th {
-                        background: #f18c35;
-                        color: white;
-                        text-align: left;
-                        padding: 12px;
-                        font-size: 18px;
-                        text-transform: uppercase;
-                    }
-                    .totals-section {
-                        margin: 20px 60px;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-end;
-                    }
-                    .totals-row {
-                        display: grid;
-                        grid-template-columns: 150px 150px;
-                        text-align: right;
-                        padding: 5px 0;
-                    }
-                    .note-box {
-                        margin: 40px 60px;
-                        border: 1.5px solid #f18c35;
-                        padding: 15px 25px;
-                        border-radius: 4px;
-                    }
-                    .footer-info {
-                        margin-top: auto;
-                        padding: 40px 60px;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-end;
-                        font-size: 14px;
-                        font-weight: 500;
-                    }
-                    .footer-accent {
-                        height: 30px;
-                        display: flex;
-                    }
-                    .footer-yellow { background: #F2A93B; flex: 1; clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%); }
-                    .footer-navy { background: #0A214D; width: 40%; }
-                    
-                    @media print {
-                        .no-print { display: none; }
-                        body { margin: 0; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="a4-container">
-                    <div class="top-header">
-                        <div class="header-accent-yellow"></div>
-                        <div class="header-accent-navy"></div>
-                        <div class="header-logo-container">
-                            <img src="${window.location.origin}/logo.png" style="height: 45px; display: block;">
-                        </div>
-                        <div class="date-box">
-                            Date: ${new Date(inv.issue_date).toLocaleDateString('en-GB')}
-                        </div>
-                    </div>
-
-                    <div class="client-info">
-                        <p style="margin-bottom: 5px;">To,</p>
-                        <h2 style="margin: 0; color: #000;">${inv.client_name}</h2>
-                        ${client && client.address ? `<p style="white-space: pre-line; margin: 5px 0;">${client.address}</p>` : ''}
-                        ${client && client.phone ? `<p style="margin: 5px 0; display: inline-block;">${client.phone}</p>` : ''}
-                        ${client && client.email ? `<p style="margin: 5px 0;">${client.email}</p>` : ''}
-                    </div>
-
-                    <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 65%;">Description</th>
-                                <th style="text-align: center; width: 15%;">QTY</th>
-                                <th style="text-align: right; width: 20%;">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${itemsHtml}
-                            <tr style="height: 40px;"><td></td><td></td><td></td></tr>
-                        </tbody>
-                    </table>
-
-                    <div class="totals-section">
-                        <div class="totals-row">
-                            <span style="color: #666;">Total</span>
-                            <span style="font-weight: bold;">${Number(inv.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                        </div>
-                        <div class="totals-row">
-                            <span style="color: #666;">Paid</span>
-                            <span>-0.00</span>
-                        </div>
-                         <div class="totals-row" style="border-top: 1px solid #ddd; margin-top: 5px; padding-top: 10px; font-size: 20px;">
-                            <span style="font-weight: bold;">Total</span>
-                            <span style="font-weight: bold; color: #0A214D;">${Number(inv.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-                        </div>
-                    </div>
-
-                    <div class="note-box">
-                        <strong style="color: #d9534f; font-size: 18px;">Note:</strong>
-                        <ul style="margin: 10px 0; color: #444;">
-                            <li>Thank you for choosing Eriline Software Solutions.</li>
-                            <li>Payments are due within 15 days of issue.</li>
-                        </ul>
-                    </div>
-
-                    <div class="footer-info">
-                        <p style="margin: 5px 0;">roshansiva1991@gmail.com ✉️</p>
-                        <p style="margin: 5px 0;">+94719195591 📞</p>
-                        <p style="margin: 5px 0;">Eriline.lk / Eriline.co 🌐</p>
-                    </div>
-
-                    <div class="footer-accent">
-                        <div style="background: #0A214D; width: 50%;"></div>
-                        <div style="background: #F2A93B; flex: 1; clip-path: polygon(15% 0, 100% 0, 100% 100%, 0% 100%);"></div>
-                    </div>
-
-                    <div class="no-print" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);">
-                         <button onclick="window.print()" style="padding: 15px 40px; background: #0A214D; color: white; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">🖨️ PRINT INVOICE / SAVE PDF</button>
-                    </div>
-                </div>
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
-  }
-
-  addProduct() {
-    this.editableProducts.push({
-      id: 'new-product',
-      type: 'NEW',
-      name: 'New Product',
-      shortDesc: 'Briefly describe this solution.',
-      icon: '💡',
-      features: ['Highlight Feature 1'],
-      description: '<h2>Overview</h2><p>Extended details here...</p>',
-      clients: []
-    });
-  }
-
-  removeProduct(index: number) {
-    this.editableProducts.splice(index, 1);
-  }
-
-  addProductFeature(prodIndex: number) {
-    if (!this.editableProducts[prodIndex].features) {
-      this.editableProducts[prodIndex].features = [];
-    }
-    this.editableProducts[prodIndex].features.push('New Feature');
-  }
-
-  removeProductFeature(prodIndex: number, featureIndex: number) {
-    this.editableProducts[prodIndex].features.splice(featureIndex, 1);
-  }
-
-  trackByIndex(index: number, obj: any): any {
-    return index;
-  }
-
-  showMessage(msg: string) {
-    this.message = msg;
-    setTimeout(() => this.message = '', 3000);
-  }
-
-  onFileSelected(event: any) {
-    this.selectedFile = event.target.files[0];
-  }
-
-  uploadCmsImage(key: string, page: string) {
-    if (!this.selectedFile) return;
-    this.uploading = true;
-    this.cms.uploadImage(this.selectedFile).subscribe({
-      next: (res) => {
-        this.cms.updateContent({ content_key: key, content_value: res.url, page: page }).subscribe(() => {
-          this.showMessage('Image updated successfully!');
-          this.uploading = false;
-          this.loadContent();
-          this.selectedFile = null;
-        });
-      },
-      error: () => this.uploading = false
-    });
-  }
-
-  // Handle uploading image for a specific list item (product or portfolio)
-  uploadListItemImage(item: any, listType: 'products' | 'portfolio' | 'clients') {
-      if (!this.selectedFile) return;
-      this.uploading = true;
-      this.cms.uploadImage(this.selectedFile).subscribe({
-          next: (res) => {
-              if (listType === 'clients') item.logo = res.url;
-              else item.image = res.url;
-              
-              if (listType === 'portfolio') this.savePortfolio();
-              else if (listType === 'clients') this.saveClients();
-              else this.saveProducts();
-
-              this.uploading = false;
-              this.selectedFile = null;
-          },
-          error: () => this.uploading = false
-      });
-  }
-
-  getImageUrl(url: string) {
-    if (url && url.startsWith('/uploads')) {
-      return `${environment.serverUrl}${url}`;
-    }
-    return url || '/hero.png';
   }
 }
 ```
@@ -3573,6 +3007,1459 @@ export class LoginComponent {
         this.resetError = err.error?.message || 'Failed to reset password.';
       }
     });
+  }
+}
+```
+
+---
+
+### File: src/app/pages/admin/pages/billing/billing.component.html
+
+```html
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Invoice Generator</h3>
+    <span class="badge">PRO VERSION</span>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+  <!-- Create New Invoice Form -->
+  <div class="invoice-creator glass-card mb-2" style="background: rgba(10, 33, 77, 0.2); border: 1px solid var(--accent); padding: 1.5rem; border-radius: 12px;">
+    <h4 class="mb-1" style="font-size: 1.1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1rem;">Create New Invoice</h4>
+    
+    <div class="grid-3 mb-1">
+      <div class="input-group">
+        <label>Client Name</label>
+        <ng-select 
+          [items]="(editableClients$ | async) || []"
+          bindLabel="name"
+          bindValue="name"
+          [(ngModel)]="newInvoice.client_name"
+          placeholder="Select a Client"
+          class="custom-dark-select">
+        </ng-select>
+      </div>
+      <div class="input-group">
+        <label>Invoice #</label>
+        <input [(ngModel)]="newInvoice.invoice_number" placeholder="INV-XXXXXX">
+      </div>
+      <div class="input-group">
+        <label>Issue Date</label>
+        <input type="date" [(ngModel)]="newInvoice.issue_date">
+      </div>
+    </div>
+
+    <!-- Line Items Table -->
+    <div class="items-table mt-2">
+      <div class="flex-between mb-1" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">LINE ITEMS</label>
+        <button class="btn-primary btn-xs" (click)="addInvoiceItem()">+ Add Item</button>
+      </div>
+
+      <div *ngFor="let item of newInvoice.items; let i = index; trackBy: trackByIndex" class="row-items" style="display: flex; gap: 0.8rem; align-items: center; margin-bottom: 0.8rem;">
+        <div class="input-group" style="flex: 3;">
+          <input [(ngModel)]="item.description" placeholder="Description (e.g. Monthly Maintenance)">
+        </div>
+        <div class="input-group" style="flex: 0.8;">
+          <input type="number" [(ngModel)]="item.qty" placeholder="Qty">
+        </div>
+        <div class="input-group" style="flex: 1.2;">
+          <input type="number" [(ngModel)]="item.price" placeholder="Price">
+        </div>
+        <button class="btn-danger btn-xs" style="height: 40px; padding: 0 1rem;" (click)="removeInvoiceItem(i)">X</button>
+      </div>
+    </div>
+
+    <!-- Footer of Creator -->
+    <div class="flex-between mt-2 pt-2" style="border-top: 1px solid var(--glass-border);">
+      <div class="total-preview">
+        <strong style="color: var(--text-secondary);">Total Amount: </strong>
+        <span style="color: var(--accent); font-size: 1.4rem; font-weight: 700; margin-left: 0.5rem;">${{calculateTotal() | number:'1.2-2'}}</span>
+      </div>
+      <button class="btn-primary" [disabled]="!newInvoice.client_name || newInvoice.amount <= 0" (click)="saveInvoice()">Generate & Save Invoice</button>
+    </div>
+  </div>
+
+  <!-- Recent Invoices List -->
+  <h3 class="mb-1" style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-top: 2rem;">Recent Invoices</h3>
+  <div class="invoice-list mt-1">
+    <table class="w-full" style="border-collapse: collapse; text-align: left; width: 100%;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--glass-border); color: var(--text-secondary); font-size: 0.8rem;">
+          <th style="padding: 0.8rem 0.5rem;"># NUMBER</th>
+          <th style="padding: 0.8rem 0.5rem;">CLIENT</th>
+          <th style="padding: 0.8rem 0.5rem;">DATE</th>
+          <th style="padding: 0.8rem 0.5rem;">AMOUNT</th>
+          <th style="padding: 0.8rem 0.5rem; text-align: center;">STATUS</th>
+          <th style="padding: 0.8rem 0.5rem; text-align: right;">ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let inv of invoices" style="border-bottom: 1px solid var(--glass-border); transition: var(--transition);">
+          <td style="padding: 0.8rem 0.5rem;"><strong>{{inv.invoice_number}}</strong></td>
+          <td style="padding: 0.8rem 0.5rem;">{{inv.client_name}}</td>
+          <td style="padding: 0.8rem 0.5rem;">{{inv.issue_date | date}}</td>
+          <td style="padding: 0.8rem 0.5rem; color: var(--accent); font-weight: 600;">${{inv.amount | number:'1.2-2'}}</td>
+          <td style="padding: 0.8rem 0.5rem; text-align: center;">
+            <span class="badge" [style.background]="inv.status === 'Paid' ? '#28a745' : '#dc3545'" 
+                  (click)="toggleInvoiceStatus(inv)" style="cursor: pointer; user-select: none;" title="Click to toggle status">
+              {{inv.status}}
+            </span>
+          </td>
+          <td style="padding: 0.8rem 0.5rem; text-align: right;">
+            <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+              <button class="btn-primary btn-xs" (click)="printInvoice(inv)">📄 Print</button>
+              <button class="btn-danger btn-xs" (click)="deleteInvoice(inv.id)">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="invoices.length === 0" class="empty-state mt-2">No invoices generated yet.</p>
+  </div>
+</section>
+```
+
+---
+
+### File: src/app/pages/admin/pages/billing/billing.component.ts
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { BehaviorSubject } from 'rxjs';
+import { CmsService } from '../../../../services/cms.service';
+
+@Component({
+  selector: 'app-admin-billing',
+  standalone: true,
+  imports: [CommonModule, FormsModule, NgSelectModule],
+  templateUrl: './billing.component.html'
+})
+export class AdminBillingComponent implements OnInit {
+  contents: any[] = [];
+  invoices: any[] = [];
+  editableClients$ = new BehaviorSubject<any[]>([]);
+  message = '';
+
+  newInvoice: any = {
+    invoice_number: 'INV-' + Date.now().toString().slice(-6),
+    client_name: '',
+    issue_date: new Date().toISOString().split('T')[0],
+    amount: 0,
+    status: 'Pending',
+    items: [{ description: '', qty: 1, price: 0 }]
+  };
+
+  constructor(private cms: CmsService, private route: ActivatedRoute) {}
+
+  ngOnInit() {
+    this.loadInvoices();
+    this.loadClients();
+    
+    // Check if clientName was passed via route query params
+    this.route.queryParams.subscribe(params => {
+      if (params['client']) {
+        this.newInvoice.client_name = params['client'];
+      }
+    });
+  }
+
+  loadClients() {
+    this.cms.getContent().subscribe(data => {
+      this.contents = data;
+      const clientsItem = this.contents.find(i => i.content_key === 'clients_list');
+      if (clientsItem) {
+        try { this.editableClients$.next(JSON.parse(clientsItem.content_value)); } catch (e) { this.editableClients$.next([]); }
+      }
+    });
+  }
+
+  loadInvoices() {
+    this.cms.getInvoices().subscribe(data => {
+      this.invoices = data.map(inv => ({ 
+        ...inv, 
+        items: typeof inv.items === 'string' ? JSON.parse(inv.items) : inv.items 
+      }));
+    });
+  }
+
+  addInvoiceItem() {
+    this.newInvoice.items.push({ description: '', qty: 1, price: 0 });
+  }
+
+  removeInvoiceItem(index: number) {
+    this.newInvoice.items.splice(index, 1);
+  }
+
+  calculateTotal() {
+    this.newInvoice.amount = this.newInvoice.items.reduce((acc: number, item: any) => acc + (item.qty * item.price), 0);
+    return this.newInvoice.amount;
+  }
+
+  saveInvoice() {
+    this.calculateTotal();
+    this.cms.createInvoice(this.newInvoice).subscribe(() => {
+        this.showMessage('Invoice generated successfully!');
+        this.loadInvoices();
+        this.newInvoice = {
+            invoice_number: 'INV-' + Date.now().toString().slice(-6),
+            client_name: '',
+            issue_date: new Date().toISOString().split('T')[0],
+            amount: 0,
+            status: 'Pending',
+            items: [{ description: '', qty: 1, price: 0 }]
+        };
+    });
+  }
+
+  deleteInvoice(id: number) {
+    if (confirm('Are you sure you want to delete this invoice?')) {
+        this.cms.deleteInvoice(id).subscribe(() => {
+            this.showMessage('Invoice deleted');
+            this.loadInvoices();
+        });
+    }
+  }
+
+  toggleInvoiceStatus(inv: any) {
+    const newStatus = inv.status === 'Paid' ? 'Pending' : 'Paid';
+    this.cms.updateInvoiceStatus(inv.id, newStatus).subscribe(() => {
+        inv.status = newStatus;
+        this.showMessage(`Invoice #${inv.invoice_number} marked as ${newStatus}`);
+    });
+  }
+
+  printInvoice(inv: any) {
+    const client = this.editableClients$.value.find(c => c.name === inv.client_name);
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const itemsHtml = inv.items.map((it: any, index: number) => `
+        <tr style="background: ${index % 2 === 0 ? '#fff' : '#ffe9da'};">
+            <td style="padding: 12px; border-bottom: 1px solid #ddd; font-weight: 500;">${it.description}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: center;">${it.qty || ''}</td>
+            <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: right; font-weight: 500;">${Number(it.price * (it.qty || 1)).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+        </tr>
+    `).join('');
+
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Eriline Invoice - ${inv.invoice_number}</title>
+                <style>
+                    @page { size: A4; margin: 0; }
+                    body { 
+                        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                        margin: 0; 
+                        padding: 0;
+                        -webkit-print-color-adjust: exact;
+                        color: #333;
+                    }
+                    .a4-container {
+                        width: 210mm;
+                        min-height: 297mm;
+                        margin: auto;
+                        background: #fff;
+                        position: relative;
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .top-header {
+                        height: 120px;
+                        display: flex;
+                        align-items: flex-end;
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .header-accent-yellow {
+                        position: absolute;
+                        top: 0; left: 0;
+                        width: 45%;
+                        height: 100px;
+                        background: #F2A93B;
+                        clip-path: polygon(0 0, 90% 0, 100% 100%, 0% 100%);
+                    }
+                    .header-accent-navy {
+                        position: absolute;
+                        top: 20px; left: 40%;
+                        width: 60%;
+                        height: 80px;
+                        background: #0A214D;
+                        clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
+                    }
+                    .header-logo-container {
+                        position: absolute;
+                        top: 25px;
+                        left: 50px;
+                        z-index: 10;
+                        background: #0A214D;
+                        padding: 10px 20px;
+                        border-radius: 4px;
+                        border-left: 8px solid #F2A93B;
+                    }
+                    .date-box {
+                        position: absolute;
+                        top: 70px;
+                        right: 0;
+                        background: #e9ecef;
+                        padding: 8px 40px;
+                        font-weight: 500;
+                        font-size: 14px;
+                    }
+                    .client-info {
+                        padding: 40px 60px;
+                        font-size: 15px;
+                        line-height: 1.6;
+                    }
+                    .items-table {
+                        width: calc(100% - 120px);
+                        margin: 0 60px;
+                        border-collapse: collapse;
+                    }
+                    .items-table th {
+                        background: #f18c35;
+                        color: white;
+                        text-align: left;
+                        padding: 12px;
+                        font-size: 18px;
+                        text-transform: uppercase;
+                    }
+                    .totals-section {
+                        margin: 20px 60px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-end;
+                    }
+                    .totals-row {
+                        display: grid;
+                        grid-template-columns: 150px 150px;
+                        text-align: right;
+                        padding: 5px 0;
+                    }
+                    .note-box {
+                        margin: 40px 60px;
+                        border: 1.5px solid #f18c35;
+                        padding: 15px 25px;
+                        border-radius: 4px;
+                    }
+                    .footer-info {
+                        margin-top: auto;
+                        padding: 40px 60px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-end;
+                        font-size: 14px;
+                        font-weight: 500;
+                    }
+                    .footer-accent {
+                        height: 30px;
+                        display: flex;
+                    }
+                    .footer-yellow { background: #F2A93B; flex: 1; clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%); }
+                    .footer-navy { background: #0A214D; width: 40%; }
+                    
+                    @media print {
+                        .no-print { display: none; }
+                        body { margin: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="a4-container">
+                    <div class="top-header">
+                        <div class="header-accent-yellow"></div>
+                        <div class="header-accent-navy"></div>
+                        <div class="header-logo-container">
+                            <img src="${window.location.origin}/logo.png" style="height: 45px; display: block;">
+                        </div>
+                        <div class="date-box">
+                            Date: ${new Date(inv.issue_date).toLocaleDateString('en-GB')}
+                        </div>
+                    </div>
+
+                    <div class="client-info">
+                        <p style="margin-bottom: 5px;">To,</p>
+                        <h2 style="margin: 0; color: #000;">${inv.client_name}</h2>
+                        ${client && client.address ? `<p style="white-space: pre-line; margin: 5px 0;">${client.address}</p>` : ''}
+                        ${client && client.phone ? `<p style="margin: 5px 0; display: inline-block;">${client.phone}</p>` : ''}
+                        ${client && client.email ? `<p style="margin: 5px 0;">${client.email}</p>` : ''}
+                    </div>
+
+                    <table class="items-table" style="width: calc(100% - 120px); margin: 0 60px; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="width: 65%; text-align: left; padding: 12px; background: #f18c35; color: white;">Description</th>
+                                <th style="text-align: center; width: 15%; padding: 12px; background: #f18c35; color: white;">QTY</th>
+                                <th style="text-align: right; width: 20%; padding: 12px; background: #f18c35; color: white;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                            <tr style="height: 40px;"><td></td><td></td><td></td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="totals-section">
+                        <div class="totals-row">
+                            <span style="color: #666;">Total</span>
+                            <span style="font-weight: bold;">${Number(inv.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="totals-row">
+                            <span style="color: #666;">Paid</span>
+                            <span>-0.00</span>
+                        </div>
+                         <div class="totals-row" style="border-top: 1px solid #ddd; margin-top: 5px; padding-top: 10px; font-size: 20px;">
+                            <span style="font-weight: bold;">Total</span>
+                            <span style="font-weight: bold; color: #0A214D;">${Number(inv.amount).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                        </div>
+                    </div>
+
+                    <div class="note-box">
+                        <strong style="color: #d9534f; font-size: 18px;">Note:</strong>
+                        <ul style="margin: 10px 0; color: #444;">
+                            <li>Thank you for choosing Eriline Software Solutions.</li>
+                            <li>Payments are due within 15 days of issue.</li>
+                        </ul>
+                    </div>
+
+                    <div class="footer-info">
+                        <p style="margin: 5px 0;">roshansiva1991@gmail.com ✉️</p>
+                        <p style="margin: 5px 0;">+94719195591 📞</p>
+                        <p style="margin: 5px 0;">Eriline.lk / Eriline.co 🌐</p>
+                    </div>
+
+                    <div class="footer-accent">
+                        <div style="background: #0A214D; width: 50%;"></div>
+                        <div style="background: #F2A93B; flex: 1; clip-path: polygon(15% 0, 100% 0, 100% 100%, 0% 100%);"></div>
+                    </div>
+
+                    <div class="no-print" style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);">
+                         <button onclick="window.print()" style="padding: 15px 40px; background: #0A214D; color: white; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">🖨️ PRINT INVOICE / SAVE PDF</button>
+                    </div>
+                </div>
+            </body>
+        </html>
+    `);
+    printWindow.document.close();
+  }
+
+  showMessage(msg: string) {
+    this.message = msg;
+    setTimeout(() => this.message = '', 3000);
+  }
+
+  trackByIndex(index: number, obj: any): any {
+    return index;
+  }
+}
+```
+
+---
+
+### File: src/app/pages/admin/pages/clients/clients.component.html
+
+```html
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Corporate Clients & Partners</h3>
+    <button class="btn-primary" (click)="addClient()">+ Add Client</button>
+  </div>
+
+  <div *ngIf="message$ | async" class="alert-success animate-fade-in"
+    style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">
+    {{message$ | async}}</div>
+
+  <div class="portfolio-manager-list grid-2">
+    <div *ngFor="let client of (editableClients$ | async); let i = index" id="client-card-{{i}}" class="portfolio-edit-item glass-card mb-1">
+      <div class="proj-img-preview">
+        <img [src]="getImageUrl(client.logo)"
+          style="background: white; padding: 10px; border-radius: 8px; object-fit: contain;max-width: 10rem; height: auto !important;">
+        <div class="img-controls mt-1">
+          <input type="file" (change)="onFileSelected($event)">
+          <button class="btn-primary btn-xs mt-1" [disabled]="uploading$ | async" (click)="uploadListItemImage(client)">
+            {{(uploading$ | async) ? 'Processing...' : 'Update Logo'}}
+          </button>
+        </div>
+      </div>
+      <div class="proj-fields mt-1">
+        <div class="input-group">
+          <label>Client Name</label>
+          <input [(ngModel)]="client.name" placeholder="Client Name">
+        </div>
+        <div class="input-group mt-1">
+          <label>Industry</label>
+          <input [(ngModel)]="client.industry" placeholder="Industry">
+        </div>
+        <div class="input-group mt-1">
+          <label>Address</label>
+          <input [(ngModel)]="client.address" placeholder="Client Address">
+        </div>
+        <div class="input-group mt-1">
+          <label>Phone Number</label>
+          <input [(ngModel)]="client.phone" placeholder="Phone Number">
+        </div>
+        <div class="input-group mt-1">
+          <label>Email Address</label>
+          <input [(ngModel)]="client.email" placeholder="Email Address">
+        </div>
+
+        <div class="input-group mt-1">
+          <label style="display: block; margin-bottom: 5px;">Utilized Products</label>
+          <div class="flex-row gap-0-5 flex-wrap">
+            <span *ngFor="let prod of editableProducts" (click)="toggleClientProduct(client, prod.name)" class="badge"
+              [style.background]="isProductSelected(client, prod.name) ? 'var(--accent)' : 'rgba(255,255,255,0.1)'"
+              [style.border]="isProductSelected(client, prod.name) ? '1px solid white' : '1px solid rgba(255,255,255,0.2)'"
+              style="cursor: pointer; font-size: 0.75rem; padding: 4px 10px; transition: all 0.2s;">
+              {{prod.name}}
+            </span>
+            <p *ngIf="editableProducts.length === 0" style="font-size: 0.8rem; color: #888;">No products defined.</p>
+          </div>
+        </div>
+
+        <div class="flex-row gap-0-5 mt-1">
+          <button class="btn-primary btn-xs" (click)="saveClients()">💾 Save Client</button>
+          <button *ngIf="!client.isNew" class="btn-primary btn-xs" (click)="quickInvoice(client.name)">🧾 Create Invoice</button>
+          <button class="btn-danger btn-xs" (click)="removeClient(i)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="btn-primary w-full mt-2" (click)="saveClients()">Publish Client List Updates</button>
+</section>
+
+<!-- Saved Clients Directory Table -->
+<section class="dash-section glass-card mt-2" style="margin-top: 2rem;">
+  <div class="flex-between mb-2">
+    <h3>Saved Clients Directory</h3>
+    <span class="badge">{{(editableClients$ | async)?.length || 0}} Active</span>
+  </div>
+
+  <div class="invoice-list mt-1">
+    <table class="w-full" style="border-collapse: collapse; text-align: left; width: 100%;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--glass-border); color: var(--text-secondary); font-size: 0.8rem;">
+          <th style="padding: 0.8rem 0.5rem; width: 80px;">LOGO</th>
+          <th style="padding: 0.8rem 0.5rem;">CLIENT NAME</th>
+          <th style="padding: 0.8rem 0.5rem;">INDUSTRY</th>
+          <th style="padding: 0.8rem 0.5rem;">CONTACT INFO</th>
+          <th style="padding: 0.8rem 0.5rem;">UTILIZED PRODUCTS</th>
+          <th style="padding: 0.8rem 0.5rem; text-align: right;">ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let client of (editableClients$ | async); let i = index" style="border-bottom: 1px solid var(--glass-border); transition: var(--transition);">
+          <td style="padding: 0.8rem 0.5rem;">
+            <img [src]="getImageUrl(client.logo)" style="width: 40px; height: 40px; border-radius: 6px; object-fit: contain; background: white; padding: 2px;">
+          </td>
+          <td style="padding: 0.8rem 0.5rem;"><strong>{{client.name}}</strong></td>
+          <td style="padding: 0.8rem 0.5rem;"><span class="badge">{{client.industry}}</span></td>
+          <td style="padding: 0.8rem 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+            <div *ngIf="client.email">📧 {{client.email}}</div>
+            <div *ngIf="client.phone">📞 {{client.phone}}</div>
+          </td>
+          <td style="padding: 0.8rem 0.5rem;">
+            <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+              <span *ngFor="let prod of client.products" class="badge" style="background: rgba(242, 169, 59, 0.15); border-color: var(--accent); color: var(--accent); font-size: 0.7rem;">
+                {{prod}}
+              </span>
+              <span *ngIf="!client.products || client.products.length === 0" style="font-size: 0.8rem; color: #666; font-style: italic;">None</span>
+            </div>
+          </td>
+          <td style="padding: 0.8rem 0.5rem; text-align: right;">
+            <button class="btn-outline btn-xs" (click)="scrollToClient(i)">✏️ Edit</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="!(editableClients$ | async) || (editableClients$ | async)?.length === 0" class="empty-state mt-2">No saved clients found.</p>
+  </div>
+</section>
+```
+
+---
+
+### File: src/app/pages/admin/pages/clients/clients.component.ts
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
+import { CmsService } from '../../../../services/cms.service';
+import { environment } from '../../../../../environments/environment';
+
+@Component({
+  selector: 'app-admin-clients',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './clients.component.html'
+})
+export class AdminClientsComponent implements OnInit {
+  contents: any[] = [];
+  editableProducts: any[] = [];
+  editableClients$ = new BehaviorSubject<any[]>([]);
+  selectedFile: File | null = null;
+  uploading$ = new BehaviorSubject<boolean>(false);
+  message$ = new BehaviorSubject<string>('');
+
+  constructor(private cms: CmsService, private router: Router) {}
+
+  ngOnInit() {
+    this.loadContent();
+  }
+
+  loadContent() {
+    this.cms.getContent().subscribe(data => {
+      this.contents = data;
+      
+      // Parse products list for utilized products selection
+      const productItem = this.contents.find(i => i.content_key === 'products_list');
+      if (productItem) {
+        try { this.editableProducts = JSON.parse(productItem.content_value); } catch (e) { this.editableProducts = []; }
+      }
+
+      // Parse clients list
+      const clientsItem = this.contents.find(i => i.content_key === 'clients_list');
+      if (clientsItem) {
+        try { this.editableClients$.next(JSON.parse(clientsItem.content_value)); } catch (e) { this.editableClients$.next([]); }
+      }
+    });
+  }
+
+  addClient() {
+    const clients = [...this.editableClients$.value];
+    clients.push({ 
+      name: 'New Client', 
+      industry: 'Retail', 
+      logo: '/client-1.png',
+      address: '',
+      phone: '',
+      email: '',
+      products: [],
+      isNew: true
+    });
+    this.editableClients$.next(clients);
+  }
+
+  toggleClientProduct(client: any, productName: string) {
+    if (!client.products) client.products = [];
+    const index = client.products.indexOf(productName);
+    if (index > -1) {
+      client.products.splice(index, 1);
+    } else {
+      client.products.push(productName);
+    }
+    this.editableClients$.next([...this.editableClients$.value]);
+  }
+
+  isProductSelected(client: any, productName: string) {
+    return client.products && client.products.includes(productName);
+  }
+
+  removeClient(index: number) {
+    const clients = [...this.editableClients$.value];
+    clients.splice(index, 1);
+    this.editableClients$.next(clients);
+  }
+
+  quickInvoice(clientName: string) {
+    this.router.navigate(['/admin/dashboard/billing'], { queryParams: { client: clientName } });
+  }
+
+  saveClients() {
+    const cleanedClients = this.editableClients$.value.map(c => {
+      const { isNew, ...rest } = c;
+      return rest;
+    });
+    this.cms.updateContent({ content_key: 'clients_list', content_value: JSON.stringify(cleanedClients), page: 'clients' }).subscribe(() => {
+        this.showMessage('Client list published successfully!');
+        this.loadContent();
+    });
+  }
+
+  onFileSelected(event: any) {
+    this.selectedFile = event.target.files[0];
+  }
+
+  uploadListItemImage(item: any) {
+      if (!this.selectedFile) return;
+      this.uploading$.next(true);
+      this.cms.uploadImage(this.selectedFile).subscribe({
+          next: (res) => {
+              item.logo = res.url;
+              this.editableClients$.next([...this.editableClients$.value]);
+              this.saveClients();
+              this.uploading$.next(false);
+              this.selectedFile = null;
+          },
+          error: () => this.uploading$.next(false)
+      });
+  }
+
+  getImageUrl(url: string) {
+    if (url && url.startsWith('/uploads')) {
+      return `${environment.serverUrl}${url}`;
+    }
+    return url || '/hero.png';
+  }
+
+  showMessage(msg: string) {
+    this.message$.next(msg);
+    setTimeout(() => this.message$.next(''), 3000);
+  }
+
+  scrollToClient(index: number) {
+    const element = document.getElementById(`client-card-${index}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.add('highlight-flash');
+      setTimeout(() => {
+        element.classList.remove('highlight-flash');
+      }, 2000);
+    }
+  }
+}
+```
+
+---
+
+### File: src/app/pages/admin/pages/content-editor/content-editor.component.html
+
+```html
+<div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+<!-- SEO & Analytics Manager (Shown on Home or SEO page) -->
+<section *ngIf="selectedPage === 'home' || selectedPage === 'seo'" class="dash-section glass-card" style="margin-bottom: 2rem;">
+  <div class="flex-between mb-2">
+    <h3>SEO & Google Analytics</h3>
+    <span class="badge">GLOBAL SETTINGS</span>
+  </div>
+  <div class="input-group">
+    <label>Google Analytics Tracking ID (e.g. G-XXXXXXXXXX)</label>
+    <div style="display: flex; gap: 10px;">
+      <input [(ngModel)]="gaTrackingId" placeholder="Leave empty to disable tracking" style="flex: 1;">
+      <button class="btn-primary" (click)="saveAnalytics()">Save Analytics Config</button>
+    </div>
+  </div>
+</section>
+
+<!-- Content Editor Section -->
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">
+    <h3>Content Editor</h3>
+    <span class="badge" style="text-transform: uppercase;">{{selectedPage}} Page</span>
+  </div>
+
+  <div class="content-table" *ngIf="filteredContents.length > 0; else noContent">
+    <div *ngFor="let item of filteredContents" class="content-item" style="border-bottom: 1px solid var(--glass-border); padding: 1.5rem 0; display: flex; flex-direction: column; gap: 1rem;">
+      
+      <!-- Image Upload Fields -->
+      <ng-container *ngIf="item.content_key.endsWith('_image_url')">
+        <div class="item-header flex-between">
+          <span class="key-label" style="font-weight: 700; color: var(--accent); letter-spacing: 0.5px;">{{item.content_key | uppercase}}</span>
+        </div>
+        
+        <div class="hero-upload-preview" style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px;">
+          <img [src]="getImageUrl(item.content_value)" class="mini-hero" style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border); background: #fff;">
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <input type="file" (change)="onFileSelected($event)" style="font-size: 0.85rem; border: none; background: transparent; padding: 0;">
+            <button class="btn-primary btn-xs" [disabled]="uploading" (click)="uploadCmsImage(item.content_key, item.page)" style="align-self: flex-start;">
+              {{uploading ? 'Uploading...' : 'Upload & Publish Image'}}
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Text / HTML Content Fields -->
+      <ng-container *ngIf="item.content_key !== 'products_list' && item.content_key !== 'portfolio_list' && item.content_key !== 'clients_list' && !item.content_key.endsWith('_image_url')">
+        <div class="item-header flex-between">
+          <span class="key-label" style="font-weight: 600; color: var(--text-primary);">{{item.content_key}}</span>
+          <button class="btn-primary btn-xs" (click)="saveContent(item)">💾 Save Item</button>
+        </div>
+
+        <!-- Rich Text Editor (ngx-quill) -->
+        <div *ngIf="richTextKeys.includes(item.content_key); else plainText" class="quill-wrapper">
+          <quill-editor [(ngModel)]="item.content_value" [modules]="quillConfig" theme="snow">
+          </quill-editor>
+        </div>
+
+        <!-- Plain Text Area -->
+        <ng-template #plainText>
+          <div class="input-group">
+            <textarea [(ngModel)]="item.content_value" rows="4" style="resize: vertical;"></textarea>
+          </div>
+        </ng-template>
+      </ng-container>
+
+    </div>
+  </div>
+
+  <ng-template #noContent>
+    <p class="empty-state">No editable text or image fields found for this page.</p>
+  </ng-template>
+</section>
+```
+
+---
+
+### File: src/app/pages/admin/pages/content-editor/content-editor.component.ts
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { QuillModule } from 'ngx-quill';
+import { CmsService } from '../../../../services/cms.service';
+import { environment } from '../../../../../environments/environment';
+
+@Component({
+  selector: 'app-admin-content-editor',
+  standalone: true,
+  imports: [CommonModule, FormsModule, QuillModule],
+  templateUrl: './content-editor.component.html'
+})
+export class AdminContentEditorComponent implements OnInit {
+  contents: any[] = [];
+  filteredContents: any[] = [];
+  selectedPage = 'home';
+  selectedFile: File | null = null;
+  uploading = false;
+  message = '';
+  gaTrackingId = '';
+
+  richTextKeys = [
+    'hero_subtitle', 
+    'about_title',
+    'about_subtitle',
+    'about_story_text', 
+    'about_mission_text', 
+    'about_vision_text', 
+    'products_subtitle', 
+    'portfolio_subtitle', 
+    'contact_subtitle'
+  ];
+
+  quillConfig = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      ['clean'],
+      ['link']
+    ]
+  };
+
+  constructor(private cms: CmsService, private route: ActivatedRoute) {}
+
+  ngOnInit() {
+    this.route.data.subscribe(data => {
+      this.selectedPage = data['page'] || 'home';
+      this.loadContent();
+    });
+  }
+
+  loadContent() {
+    this.cms.getContent().subscribe(data => {
+      this.contents = data;
+      this.filteredContents = this.contents.filter(item => item.page === this.selectedPage);
+      
+      // Load Analytics Tracking ID
+      const gaItem = this.contents.find(i => i.content_key === 'ga_tracking_id');
+      if (gaItem) {
+        this.gaTrackingId = gaItem.content_value;
+      } else {
+        this.gaTrackingId = '';
+      }
+    });
+  }
+
+  saveContent(item: any) {
+    this.cms.updateContent(item).subscribe(() => {
+      this.showMessage('Content updated successfully!');
+      this.loadContent();
+    });
+  }
+
+  saveAnalytics() {
+    this.cms.updateContent({ 
+      content_key: 'ga_tracking_id', 
+      content_value: this.gaTrackingId || '', 
+      page: 'global' 
+    }).subscribe(() => {
+      this.showMessage('Analytics settings updated successfully!');
+      this.loadContent();
+    });
+  }
+
+  onFileSelected(event: any) {
+    this.selectedFile = event.target.files[0];
+  }
+
+  uploadCmsImage(key: string, page: string) {
+    if (!this.selectedFile) return;
+    this.uploading = true;
+    this.cms.uploadImage(this.selectedFile).subscribe({
+      next: (res) => {
+        this.cms.updateContent({ 
+          content_key: key, 
+          content_value: res.url, 
+          page: page 
+        }).subscribe(() => {
+          this.showMessage('Image uploaded successfully!');
+          this.uploading = false;
+          this.loadContent();
+          this.selectedFile = null;
+        });
+      },
+      error: () => {
+        this.uploading = false;
+        this.showMessage('Failed to upload image.');
+      }
+    });
+  }
+
+  getImageUrl(url: string) {
+    if (url && url.startsWith('/uploads')) {
+      return `${environment.serverUrl}${url}`;
+    }
+    return url || '/hero.png';
+  }
+
+  showMessage(msg: string) {
+    this.message = msg;
+    setTimeout(() => this.message = '', 3500);
+  }
+}
+```
+
+---
+
+### File: src/app/pages/admin/pages/portfolio/portfolio.component.html
+
+```html
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Project Showcase Manager</h3>
+    <button class="btn-primary" (click)="addPortfolioItem()">+ Add Project</button>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in"
+    style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">
+    {{message}}</div>
+
+  <div class="portfolio-manager-list grid-2">
+    <div *ngFor="let proj of (editablePortfolio | async); let i = index" class="portfolio-edit-item glass-card mb-1">
+      <div class="proj-img-preview">
+        <img [src]="getImageUrl(proj.image)" style="max-width: 10rem !important; height: auto !important;">
+        <div class="img-controls mt-1">
+          <input type="file" (change)="onFileSelected($event)">
+          <button class="btn-primary btn-xs mt-1" [disabled]="uploading" (click)="uploadListItemImage(proj)">
+            {{uploading ? 'Processing...' : 'Change Image'}}
+          </button>
+        </div>
+      </div>
+      <div class="proj-fields mt-1">
+        <div class="input-group">
+          <label>Project Title</label>
+          <input [(ngModel)]="proj.title" placeholder="Project Title">
+        </div>
+        <div class="input-group mt-1">
+          <label>Category</label>
+          <input [(ngModel)]="proj.category" placeholder="Category">
+        </div>
+        <button class="btn-danger btn-xs mt-1" (click)="removePortfolioItem(i)">Remove Project</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn-primary w-full mt-2" (click)="savePortfolio()">Publish Portfolio Updates</button>
+</section>
+```
+
+---
+
+### File: src/app/pages/admin/pages/portfolio/portfolio.component.ts
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { CmsService } from '../../../../services/cms.service';
+import { environment } from '../../../../../environments/environment';
+import { BehaviorSubject } from 'rxjs';
+
+@Component({
+  selector: 'app-admin-portfolio',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './portfolio.component.html'
+})
+export class AdminPortfolioComponent implements OnInit {
+  contents = new BehaviorSubject<any[]>([]);
+  editablePortfolio = new BehaviorSubject<any[]>([]);
+  selectedFile: File | null = null;
+  uploading = false;
+  message = '';
+
+  constructor(private cms: CmsService) { }
+
+  ngOnInit() {
+    this.loadContent();
+  }
+
+  loadContent() {
+    this.cms.getContent().subscribe(data => {
+      this.contents.next(data);
+      const portfolioItem = this.contents.value.find(i => i.content_key === 'portfolio_list');
+      if (portfolioItem) {
+        try {
+          this.editablePortfolio.next(JSON.parse(portfolioItem.content_value));
+        } catch (e) {
+          this.editablePortfolio.next([]);
+        }
+      }
+    });
+  }
+
+  addPortfolioItem() {
+    this.editablePortfolio.next([...this.editablePortfolio.value, { title: 'New Project', category: 'Software', image: '/startup.png' }]);
+  }
+
+  removePortfolioItem(index: number) {
+    this.editablePortfolio.next(this.editablePortfolio.value.filter((_, i) => i !== index));
+  }
+
+  savePortfolio() {
+    const portfolioItem = this.contents.value.find(i => i.content_key === 'portfolio_list');
+    if (portfolioItem) {
+      portfolioItem.content_value = JSON.stringify(this.editablePortfolio.value);
+      this.cms.updateContent(portfolioItem).subscribe(() => {
+        this.showMessage('Portfolio updates published successfully!');
+        this.loadContent();
+      });
+    }
+  }
+
+  onFileSelected(event: any) {
+    this.selectedFile = event.target.files[0];
+  }
+
+  uploadListItemImage(item: any) {
+    if (!this.selectedFile) return;
+    this.uploading = true;
+    this.cms.uploadImage(this.selectedFile).subscribe({
+      next: (res) => {
+        item.image = res.url;
+        this.savePortfolio();
+        this.uploading = false;
+        this.selectedFile = null;
+      },
+      error: () => this.uploading = false
+    });
+  }
+
+  getImageUrl(url: string) {
+    if (url && url.startsWith('/uploads')) {
+      return `${environment.serverUrl}${url}`;
+    }
+    return url || '/hero.png';
+  }
+
+  showMessage(msg: string) {
+    this.message = msg;
+    setTimeout(() => this.message = '', 3000);
+  }
+}
+```
+
+---
+
+### File: src/app/pages/admin/pages/products/products.component.html
+
+```html
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Software Catalog Editor</h3>
+    <button class="btn-primary" (click)="addProduct()">+ New Product</button>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in"
+    style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">
+    {{message}}</div>
+
+  <div class="product-manager-list">
+    <div *ngFor="let prod of (editableProducts | async); let i = index" class="product-edit-item glass-card mb-1"
+      style="background: rgba(255,255,255,0.02); margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--glass-border);">
+      <div class="prod-row" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <div class="input-group" style="flex: 1; min-width: 150px;">
+          <label>ID (URL Slug)</label>
+          <input [(ngModel)]="prod.id" placeholder="e.g. pos">
+        </div>
+        <div class="input-group" style="flex: 2; min-width: 200px;">
+          <label>System Name</label>
+          <input [(ngModel)]="prod.name" placeholder="Product Name">
+        </div>
+        <div class="input-group" style="flex: 1; min-width: 150px;">
+          <label>Type / Badge</label>
+          <input [(ngModel)]="prod.type" placeholder="Type (e.g. POS)">
+        </div>
+        <div class="input-group" style="flex: 0.5; min-width: 80px;">
+          <label>Icon</label>
+          <input [(ngModel)]="prod.icon" placeholder="💡" style="text-align: center;">
+        </div>
+        <button class="btn-danger btn-icon" style="align-self: flex-end; height: 42px; width: 42px;"
+          (click)="removeProduct(i)">🗑️</button>
+      </div>
+
+      <div class="input-group mt-1">
+        <label>Short Description (Card View)</label>
+        <input [(ngModel)]="prod.shortDesc" placeholder="Brief summary of the product...">
+      </div>
+
+      <div class="features-edit-row mt-1 p-1" style="background: rgba(0,0,0,0.1); border-radius: 8px; padding: 1rem;">
+        <label class="field-label flex-between"
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600;">
+          <span>Key Features (Card View)</span>
+          <button class="btn-primary btn-xs" (click)="addProductFeature(i)">+ Add Feature</button>
+        </label>
+        <div *ngFor="let feat of prod.features; let fIndex = index; trackBy: trackByIndex" class="flex-between mt-1"
+          style="display: flex; gap: 10px; margin-bottom: 0.5rem;">
+          <input [(ngModel)]="prod.features[fIndex]" style="flex: 1;" placeholder="Feature detail...">
+          <button class="btn-danger btn-xs" style="padding: 0.2rem 0.5rem;"
+            (click)="removeProductFeature(i, fIndex)">X</button>
+        </div>
+      </div>
+
+      <div class="quill-wrapper mt-2">
+        <label class="field-label"
+          style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; color: #333;">Rich
+          Description (Details Page)</label>
+        <quill-editor [(ngModel)]="prod.description" [modules]="quillConfig" theme="snow">
+        </quill-editor>
+      </div>
+    </div>
+  </div>
+  <button class="btn-primary w-full mt-2" (click)="saveProducts()">Publish Catalog Updates</button>
+</section>
+```
+
+---
+
+### File: src/app/pages/admin/pages/products/products.component.ts
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { QuillModule } from 'ngx-quill';
+import { CmsService } from '../../../../services/cms.service';
+import { BehaviorSubject } from 'rxjs';
+
+@Component({
+  selector: 'app-admin-products',
+  standalone: true,
+  imports: [CommonModule, FormsModule, QuillModule],
+  templateUrl: './products.component.html'
+})
+export class AdminProductsComponent implements OnInit {
+  contents = new BehaviorSubject<any[]>([]);
+  editableProducts = new BehaviorSubject<any[]>([]);
+  message = '';
+
+  quillConfig = {
+    toolbar: [
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      ['clean'],
+      ['link']
+    ]
+  };
+
+  constructor(private cms: CmsService) { }
+
+  ngOnInit() {
+    this.loadContent();
+  }
+
+  loadContent() {
+    this.cms.getContent().subscribe(data => {
+      this.contents.next(data);
+      const productItem = this.contents.value.find(i => i.content_key === 'products_list');
+      if (productItem) {
+        try {
+          this.editableProducts.next(JSON.parse(productItem.content_value));
+        } catch (e) {
+          this.editableProducts.next([]);
+        }
+      }
+    });
+  }
+
+  addProduct() {
+    this.editableProducts.next([...this.editableProducts.value, {
+      id: 'new-product',
+      type: 'NEW',
+      name: 'New Product',
+      shortDesc: 'Briefly describe this solution.',
+      icon: '💡',
+      features: ['Highlight Feature 1'],
+      description: '<h2>Overview</h2><p>Extended details here...</p>',
+      clients: []
+    }]);
+  }
+
+  removeProduct(index: number) {
+    this.editableProducts.next(this.editableProducts.value.filter((_, i) => i !== index));
+  }
+
+  addProductFeature(prodIndex: number) {
+    if (!this.editableProducts.value[prodIndex].features) {
+      this.editableProducts.value[prodIndex].features = [];
+    }
+    this.editableProducts.value[prodIndex].features.push('New Feature');
+  }
+
+  removeProductFeature(prodIndex: number, featureIndex: number) {
+    this.editableProducts.value[prodIndex].features.splice(featureIndex, 1);
+  }
+
+  trackByIndex(index: number, obj: any): any {
+    return index;
+  }
+
+  saveProducts() {
+    const productItem = this.contents.value.find((i: any) => i.content_key === 'products_list');
+    if (productItem) {
+      productItem.content_value = JSON.stringify(this.editableProducts);
+      this.cms.updateContent(productItem).subscribe(() => {
+        this.showMessage('Catalog updates published successfully!');
+        this.loadContent();
+      });
+    }
+  }
+
+  showMessage(msg: string) {
+    this.message = msg;
+    setTimeout(() => this.message = '', 3000);
+  }
+}
+```
+
+---
+
+### File: src/app/pages/admin/pages/scheduled-billing/scheduled-billing.component.html
+
+```html
+<section class="dash-section glass-card">
+  <div class="flex-between mb-2">
+    <h3>Scheduled Maintenance Billing</h3>
+    <span class="badge">RECURRING BILLING</span>
+  </div>
+
+  <div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1.5rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+
+  <!-- Create New Scheduled Invoice Form -->
+  <div class="invoice-creator glass-card mb-2" style="background: rgba(10, 33, 77, 0.2); border: 1px solid var(--accent); padding: 1.5rem; border-radius: 12px;">
+    <h4 class="mb-1" style="font-size: 1.1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1rem;">Setup Recurring Maintenance Contract</h4>
+    
+    <div class="grid-3 mb-1">
+      <div class="input-group">
+        <label>Client Name</label>
+        <ng-select 
+          [items]="(editableClients$ | async) || []"
+          bindLabel="name"
+          bindValue="name"
+          [(ngModel)]="newScheduledInvoice.client_name"
+          placeholder="Select a Client"
+          class="custom-dark-select">
+        </ng-select>
+      </div>
+      <div class="input-group">
+        <label>Service / Contract Name</label>
+        <input [(ngModel)]="newScheduledInvoice.service_name" placeholder="e.g. VPS Maintenance / ERP Support">
+      </div>
+      <div class="input-group">
+        <label>Billing Frequency</label>
+        <ng-select 
+          [items]="frequencies"
+          [(ngModel)]="newScheduledInvoice.frequency"
+          [searchable]="false"
+          [clearable]="false"
+          class="custom-dark-select">
+        </ng-select>
+      </div>
+    </div>
+
+    <div class="grid-2 mb-1">
+      <div class="input-group">
+        <label>Base Price / Cycle Amount ($)</label>
+        <input type="number" [(ngModel)]="newScheduledInvoice.amount" placeholder="0.00">
+      </div>
+      <div class="input-group">
+        <label>First Billing Date</label>
+        <input type="date" [(ngModel)]="newScheduledInvoice.start_date">
+      </div>
+    </div>
+
+    <!-- Actions Footer -->
+    <div class="flex-between mt-2 pt-2" style="border-top: 1px solid var(--glass-border);">
+      <p style="font-size: 0.8rem; color: var(--text-secondary);">Generates invoice automaticaly on next bill date or can be run manually.</p>
+      <button class="btn-primary" [disabled]="!newScheduledInvoice.client_name || !newScheduledInvoice.service_name || newScheduledInvoice.amount <= 0" (click)="saveScheduledInvoice()">Create Recurring Contract</button>
+    </div>
+  </div>
+
+  <!-- Active Schedules Listing -->
+  <h3 class="mb-1" style="font-size: 1.2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-top: 2.5rem;">Active Recurring Contracts</h3>
+  
+  <div class="grid-2 mt-1" *ngIf="scheduledInvoices.length > 0; else emptySchedules">
+    <div *ngFor="let sched of scheduledInvoices" class="glass-card" style="padding: 1.2rem; display: flex; flex-direction: column; justify-content: space-between; border-radius: 12px; min-height: 220px; transition: var(--transition); background: rgba(255,255,255,0.02);">
+      <div>
+        <div class="flex-between mb-1">
+          <h4 style="color: var(--accent); font-size: 1.1rem; margin: 0;">{{sched.service_name}}</h4>
+          <span class="badge" [style.background]="sched.status === 'Active' ? '#28a745' : '#dc3545'">{{sched.status}}</span>
+        </div>
+        <p style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.8rem;">Client: {{sched.client_name}}</p>
+        
+        <div style="font-size: 0.85rem; color: var(--text-secondary); display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+          <div>Frequency: <strong style="color: #fff;">{{sched.frequency}}</strong></div>
+          <div>Cycle Amount: <strong style="color: #fff;">${{sched.amount | number:'1.2-2'}}</strong></div>
+          <div>Start Date: <strong style="color: #fff;">{{sched.start_date | date:'shortDate'}}</strong></div>
+          <div>Next Bill Date: <strong style="color: #fff;">{{sched.next_bill_date | date:'shortDate'}}</strong></div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.4rem; border-top: 1px solid var(--glass-border); padding-top: 0.8rem; margin-top: auto;">
+        <button class="btn-primary btn-xs" style="flex: 1; justify-content: center;" [disabled]="loading" (click)="triggerScheduledInvoiceNow(sched)">⚡ Run Now</button>
+        <button class="btn-outline btn-xs" style="flex: 1; justify-content: center;" (click)="toggleScheduledInvoiceStatus(sched)">
+          {{sched.status === 'Active' ? '⏸️ Pause' : '▶️ Resume'}}
+        </button>
+        <button class="btn-danger btn-xs" style="padding: 0 0.8rem;" (click)="deleteScheduledInvoice(sched.id)">🗑️</button>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #emptySchedules>
+    <p class="empty-state">No recurring maintenance contracts configured yet.</p>
+  </ng-template>
+</section>
+```
+
+---
+
+### File: src/app/pages/admin/pages/scheduled-billing/scheduled-billing.component.ts
+
+```typescript
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { NgSelectModule } from '@ng-select/ng-select';
+import { BehaviorSubject } from 'rxjs';
+import { CmsService } from '../../../../services/cms.service';
+
+@Component({
+  selector: 'app-admin-scheduled-billing',
+  standalone: true,
+  imports: [CommonModule, FormsModule, NgSelectModule],
+  templateUrl: './scheduled-billing.component.html'
+})
+export class AdminScheduledBillingComponent implements OnInit {
+  contents: any[] = [];
+  scheduledInvoices: any[] = [];
+  editableClients$ = new BehaviorSubject<any[]>([]);
+  message = '';
+  loading = false;
+
+  frequencies = ['Monthly', 'Quarterly', 'Bi-annually', 'Annually'];
+
+  newScheduledInvoice: any = {
+    client_name: '',
+    service_name: '',
+    amount: 0,
+    frequency: 'Monthly',
+    start_date: new Date().toISOString().split('T')[0]
+  };
+
+  constructor(private cms: CmsService) {}
+
+  ngOnInit() {
+    this.loadScheduledInvoices();
+    this.loadClients();
+  }
+
+  loadClients() {
+    this.cms.getContent().subscribe(data => {
+      this.contents = data;
+      const clientsItem = this.contents.find(i => i.content_key === 'clients_list');
+      if (clientsItem) {
+        try {
+          this.editableClients$.next(JSON.parse(clientsItem.content_value));
+        } catch (e) {
+          this.editableClients$.next([]);
+        }
+      }
+    });
+  }
+
+  loadScheduledInvoices() {
+    this.cms.getScheduledInvoices().subscribe(data => {
+      this.scheduledInvoices = data;
+    });
+  }
+
+  saveScheduledInvoice() {
+    this.cms.createScheduledInvoice(this.newScheduledInvoice).subscribe(() => {
+      this.showMessage('Scheduled invoice created successfully!');
+      this.loadScheduledInvoices();
+      this.newScheduledInvoice = {
+        client_name: '',
+        service_name: '',
+        amount: 0,
+        frequency: 'Monthly',
+        start_date: new Date().toISOString().split('T')[0]
+      };
+    });
+  }
+
+  deleteScheduledInvoice(id: number) {
+    if (confirm('Are you sure you want to delete this scheduled invoice?')) {
+      this.cms.deleteScheduledInvoice(id).subscribe(() => {
+        this.showMessage('Scheduled invoice deleted');
+        this.loadScheduledInvoices();
+      });
+    }
+  }
+
+  toggleScheduledInvoiceStatus(sched: any) {
+    const newStatus = sched.status === 'Active' ? 'Paused' : 'Active';
+    this.cms.updateScheduledInvoiceStatus(sched.id, newStatus).subscribe(() => {
+      sched.status = newStatus;
+      this.showMessage(`Schedule for ${sched.client_name} marked as ${newStatus}`);
+    });
+  }
+
+  triggerScheduledInvoiceNow(sched: any) {
+    this.loading = true;
+    this.cms.triggerScheduledInvoice(sched.id).subscribe({
+      next: (res: any) => {
+        this.showMessage(res.message || 'Invoice generated successfully!');
+        this.loadScheduledInvoices();
+        this.loading = false;
+      },
+      error: (err) => {
+        this.showMessage('Error triggering scheduled invoice: ' + err.message);
+        this.loading = false;
+      }
+    });
+  }
+
+  showMessage(msg: string) {
+    this.message = msg;
+    setTimeout(() => this.message = '', 3500);
   }
 }
 ```
@@ -5226,6 +6113,27 @@ export const authGuard: CanActivateFn = (route, state) => {
 
 ---
 
+### File: src/app/services/auth.interceptor.ts
+
+```typescript
+import { HttpInterceptorFn } from '@angular/common/http';
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    const cloned = req.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return next(cloned);
+  }
+  return next(req);
+};
+```
+
+---
+
 ### File: src/app/services/auth.service.ts
 
 ```typescript
@@ -5319,6 +6227,26 @@ export class CmsService {
     return this.http.patch(`${this.apiUrl}/invoices/${id}/status`, { status });
   }
 
+  getScheduledInvoices() {
+    return this.http.get<any[]>(`${this.apiUrl}/invoices/scheduled`);
+  }
+
+  createScheduledInvoice(data: any) {
+    return this.http.post(`${this.apiUrl}/invoices/scheduled`, data);
+  }
+
+  deleteScheduledInvoice(id: number) {
+    return this.http.delete(`${this.apiUrl}/invoices/scheduled/${id}`);
+  }
+
+  updateScheduledInvoiceStatus(id: number, status: string) {
+    return this.http.patch(`${this.apiUrl}/invoices/scheduled/${id}/status`, { status });
+  }
+
+  triggerScheduledInvoice(id: number) {
+    return this.http.post(`${this.apiUrl}/invoices/scheduled/${id}/trigger`, {});
+  }
+
   sendContactMessage(data: any) {
     return this.http.post(`${this.apiUrl}/contact`, data);
   }
@@ -5368,6 +6296,7 @@ export const environment = {
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap"
     rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.6/quill.snow.css">
 </head>
 
@@ -5395,6 +6324,8 @@ bootstrapApplication(App, appConfig).catch((err) => console.error(err));
 ### File: src/styles.css
 
 ```css
+@import "@ng-select/ng-select/themes/default.theme.css";
+
 :root {
   --primary-dark: #070f21;
   --secondary-dark: #0a214d;
@@ -5529,6 +6460,190 @@ section {
 
 .animate-fade-in {
   animation: fadeInUp 0.8s ease-out forwards;
+}
+
+/* Reusable Admin UI Dashboard Utilities */
+.dash-section {
+  padding: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.input-group input, .input-group select, .input-group textarea {
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  outline: none;
+  width: 100%;
+}
+
+.input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.flex-row {
+  display: flex;
+  align-items: center;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.gap-0-5 {
+  gap: 0.5rem;
+}
+
+.gap-1 {
+  gap: 1rem;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.badge {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-block;
+}
+
+.btn-xs {
+  font-size: 0.7rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.btn-sm {
+  font-size: 0.85rem;
+  padding: 0.6rem 1.2rem;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+.quill-wrapper {
+  margin: 1.5rem 0;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  color: #333;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mb-1 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 2rem; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+.p-1 { padding: 0.5rem; }
+
+/* ng-select dark theme customization */
+.ng-select.custom-dark-select .ng-select-container {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 8px !important;
+  color: var(--text-primary) !important;
+  min-height: 43px !important;
+}
+
+.ng-select.custom-dark-select .ng-select-container .ng-value-container .ng-input input {
+  color: var(--text-primary) !important;
+}
+
+.ng-select.custom-dark-select .ng-select-container .ng-value-container .ng-value {
+  color: var(--text-primary) !important;
+}
+
+.ng-select.custom-dark-select .ng-select-container .ng-value-container .ng-placeholder {
+  color: var(--text-secondary) !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel {
+  background: #0a214d !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 8px !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
+  background: #0a214d !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-marked {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ng-select.custom-dark-select .ng-dropdown-panel .ng-dropdown-panel-items .ng-option.ng-option-selected {
+  background: var(--accent) !important;
+  color: var(--primary-dark) !important;
+}
+
+.ng-select.custom-dark-select .ng-arrow-wrapper .ng-arrow {
+  border-color: var(--text-secondary) transparent transparent !important;
+}
+
+@keyframes flashHighlight {
+  0% { border-color: var(--accent); box-shadow: 0 0 15px rgba(242, 169, 59, 0.4); }
+  50% { border-color: var(--accent); box-shadow: 0 0 25px rgba(242, 169, 59, 0.7); }
+  100% { border-color: var(--glass-border); box-shadow: none; }
+}
+
+.highlight-flash {
+  animation: flashHighlight 2s ease-in-out;
 }
 ```
 

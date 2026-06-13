@@ -32,6 +32,14 @@ async function initDB() {
         `);
 
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS site_images (
+                image_key VARCHAR(255) PRIMARY KEY,
+                image_url VARCHAR(255) NOT NULL,
+                alt_text VARCHAR(255)
+            )
+        `);
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS invoices (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 invoice_number VARCHAR(50) UNIQUE NOT NULL,

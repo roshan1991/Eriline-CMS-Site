@@ -22,7 +22,18 @@ exports.updateContent = async (req, res) => {
     }
 };
 
-exports.uploadImage = (req, res) => {
+exports.uploadImage = async (req, res) => {
     if (!req.file) return res.status(400).send('No file uploaded.');
-    res.json({ url: `/uploads/${req.file.filename}` });
+    const imageUrl = `/uploads/${req.file.filename}`;
+    const imageKey = req.file.filename;
+    const altText = req.file.originalname;
+    try {
+        await pool.query(
+            'INSERT INTO site_images (image_key, image_url, alt_text) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE image_url = ?',
+            [imageKey, imageUrl, altText, imageUrl]
+        );
+        res.json({ url: imageUrl });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 };

@@ -4,16 +4,17 @@
     <button class="btn-primary" (click)="addPortfolioItem()">+ Add Project</button>
   </div>
 
-  <div *ngIf="message" class="alert-success animate-fade-in" style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">{{message}}</div>
+  <div *ngIf="message" class="alert-success animate-fade-in"
+    style="margin-bottom: 1rem; padding: 0.8rem; background: rgba(40, 167, 69, 0.2); border: 1px solid #28a745; border-radius: 8px;">
+    {{message}}</div>
 
   <div class="portfolio-manager-list grid-2">
-    <div *ngFor="let proj of editablePortfolio; let i = index" class="portfolio-edit-item glass-card mb-1">
+    <div *ngFor="let proj of (editablePortfolio | async); let i = index" class="portfolio-edit-item glass-card mb-1">
       <div class="proj-img-preview">
-        <img [src]="getImageUrl(proj.image)">
+        <img [src]="getImageUrl(proj.image)" style="max-width: 10rem !important; height: auto !important;">
         <div class="img-controls mt-1">
           <input type="file" (change)="onFileSelected($event)">
-          <button class="btn-primary btn-xs mt-1" [disabled]="uploading"
-            (click)="uploadListItemImage(proj)">
+          <button class="btn-primary btn-xs mt-1" [disabled]="uploading" (click)="uploadListItemImage(proj)">
             {{uploading ? 'Processing...' : 'Change Image'}}
           </button>
         </div>

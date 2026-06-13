@@ -309,3 +309,13 @@ section {
 .ng-select.custom-dark-select .ng-arrow-wrapper .ng-arrow {
   border-color: var(--text-secondary) transparent transparent !important;
 }
+
+@keyframes flashHighlight {
+  0% { border-color: var(--accent); box-shadow: 0 0 15px rgba(242, 169, 59, 0.4); }
+  50% { border-color: var(--accent); box-shadow: 0 0 25px rgba(242, 169, 59, 0.7); }
+  100% { border-color: var(--glass-border); box-shadow: none; }
+}
+
+.highlight-flash {
+  animation: flashHighlight 2s ease-in-out;
+}

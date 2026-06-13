@@ -36,6 +36,17 @@ INSERT IGNORE INTO site_images (image_key, image_url) VALUES
 ('hero_bg', '/assets/hero.png'),
 ('cloud_section_img', '/assets/cloud.png');
 
+CREATE TABLE IF NOT EXISTS invoices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_number VARCHAR(50) UNIQUE NOT NULL,
+  client_name VARCHAR(255) NOT NULL,
+  amount DECIMAL(10, 2) NOT NULL,
+  issue_date DATE NOT NULL,
+  status VARCHAR(50) DEFAULT 'Pending',
+  items JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS scheduled_invoices (
   id INT AUTO_INCREMENT PRIMARY KEY,
   client_name VARCHAR(255) NOT NULL,
@@ -45,6 +56,14 @@ CREATE TABLE IF NOT EXISTS scheduled_invoices (
   start_date DATE NOT NULL,
   next_bill_date DATE NOT NULL,
   status VARCHAR(50) DEFAULT 'Active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS contact_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

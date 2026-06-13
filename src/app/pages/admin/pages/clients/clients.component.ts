@@ -53,7 +53,8 @@ export class AdminClientsComponent implements OnInit {
       address: '',
       phone: '',
       email: '',
-      products: [] 
+      products: [],
+      isNew: true
     });
     this.editableClients$.next(clients);
   }
@@ -84,7 +85,11 @@ export class AdminClientsComponent implements OnInit {
   }
 
   saveClients() {
-    this.cms.updateContent({ content_key: 'clients_list', content_value: JSON.stringify(this.editableClients$.value), page: 'clients' }).subscribe(() => {
+    const cleanedClients = this.editableClients$.value.map(c => {
+      const { isNew, ...rest } = c;
+      return rest;
+    });
+    this.cms.updateContent({ content_key: 'clients_list', content_value: JSON.stringify(cleanedClients), page: 'clients' }).subscribe(() => {
         this.showMessage('Client list published successfully!');
         this.loadContent();
     });
@@ -119,5 +124,16 @@ export class AdminClientsComponent implements OnInit {
   showMessage(msg: string) {
     this.message$.next(msg);
     setTimeout(() => this.message$.next(''), 3000);
+  }
+
+  scrollToClient(index: number) {
+    const element = document.getElementById(`client-card-${index}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      element.classList.add('highlight-flash');
+      setTimeout(() => {
+        element.classList.remove('highlight-flash');
+      }, 2000);
+    }
   }
 }

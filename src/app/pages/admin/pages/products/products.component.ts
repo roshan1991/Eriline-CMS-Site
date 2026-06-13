@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
 import { CmsService } from '../../../../services/cms.service';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-admin-products',
@@ -11,20 +12,20 @@ import { CmsService } from '../../../../services/cms.service';
   templateUrl: './products.component.html'
 })
 export class AdminProductsComponent implements OnInit {
-  contents: any[] = [];
-  editableProducts: any[] = [];
+  contents = new BehaviorSubject<any[]>([]);
+  editableProducts = new BehaviorSubject<any[]>([]);
   message = '';
-  
+
   quillConfig = {
     toolbar: [
       ['bold', 'italic', 'underline'],
-      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
       ['clean'],
       ['link']
     ]
   };
 
-  constructor(private cms: CmsService) {}
+  constructor(private cms: CmsService) { }
 
   ngOnInit() {
     this.loadContent();
@@ -32,20 +33,20 @@ export class AdminProductsComponent implements OnInit {
 
   loadContent() {
     this.cms.getContent().subscribe(data => {
-      this.contents = data;
-      const productItem = this.contents.find(i => i.content_key === 'products_list');
+      this.contents.next(data);
+      const productItem = this.contents.value.find(i => i.content_key === 'products_list');
       if (productItem) {
         try {
-          this.editableProducts = JSON.parse(productItem.content_value);
+          this.editableProducts.next(JSON.parse(productItem.content_value));
         } catch (e) {
-          this.editableProducts = [];
+          this.editableProducts.next([]);
         }
       }
     });
   }
 
   addProduct() {
-    this.editableProducts.push({
+    this.editableProducts.next([...this.editableProducts.value, {
       id: 'new-product',
       type: 'NEW',
       name: 'New Product',
@@ -54,22 +55,22 @@ export class AdminProductsComponent implements OnInit {
       features: ['Highlight Feature 1'],
       description: '<h2>Overview</h2><p>Extended details here...</p>',
       clients: []
-    });
+    }]);
   }
 
   removeProduct(index: number) {
-    this.editableProducts.splice(index, 1);
+    this.editableProducts.next(this.editableProducts.value.filter((_, i) => i !== index));
   }
 
   addProductFeature(prodIndex: number) {
-    if (!this.editableProducts[prodIndex].features) {
-      this.editableProducts[prodIndex].features = [];
+    if (!this.editableProducts.value[prodIndex].features) {
+      this.editableProducts.value[prodIndex].features = [];
     }
-    this.editableProducts[prodIndex].features.push('New Feature');
+    this.editableProducts.value[prodIndex].features.push('New Feature');
   }
 
   removeProductFeature(prodIndex: number, featureIndex: number) {
-    this.editableProducts[prodIndex].features.splice(featureIndex, 1);
+    this.editableProducts.value[prodIndex].features.splice(featureIndex, 1);
   }
 
   trackByIndex(index: number, obj: any): any {
@@ -77,7 +78,7 @@ export class AdminProductsComponent implements OnInit {
   }
 
   saveProducts() {
-    const productItem = this.contents.find(i => i.content_key === 'products_list');
+    const productItem = this.contents.value.find((i: any) => i.content_key === 'products_list');
     if (productItem) {
       productItem.content_value = JSON.stringify(this.editableProducts);
       this.cms.updateContent(productItem).subscribe(() => {
