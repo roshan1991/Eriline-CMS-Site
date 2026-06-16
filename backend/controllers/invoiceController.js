@@ -117,7 +117,7 @@ exports.triggerScheduledInvoice = async (req, res) => {
             await conn.beginTransaction();
 
             // 1. Create the real invoice
-            await conn.query(
+            const [result] = await conn.query(
                 'INSERT INTO invoices (invoice_number, client_name, amount, issue_date, status, items) VALUES (?, ?, ?, ?, ?, ?)',
                 [invoiceNum, sched.client_name, sched.amount, issueDate, 'Pending', JSON.stringify(items)]
             );
@@ -142,7 +142,15 @@ exports.triggerScheduledInvoice = async (req, res) => {
             );
 
             await conn.commit();
-            res.json({ message: `Invoice ${invoiceNum} generated successfully!` });
+            
+            // 4. Send email automatically
+            try {
+                await internalSendInvoiceEmail(result.insertId);
+                res.json({ message: `Invoice ${invoiceNum} generated and emailed successfully!` });
+            } catch (emailErr) {
+                console.error("Failed to send automated invoice email:", emailErr);
+                res.json({ message: `Invoice ${invoiceNum} generated successfully, but email failed: ${emailErr.message}` });
+            }
         } catch (err) {
             await conn.rollback();
             throw err;
@@ -321,72 +329,77 @@ function generateInvoicePDF(invoice, items, clientInfo) {
     });
 }
 
+async function internalSendInvoiceEmail(invoiceId) {
+    const [invRows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [invoiceId]);
+    if (invRows.length === 0) throw new Error('Invoice not found');
+
+    const invoice = invRows[0];
+    const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items;
+
+    const [contentRows] = await pool.query("SELECT content_value FROM site_content WHERE content_key = 'clients_list'");
+    let clientEmail = null;
+    let clientAddress = '';
+    let clientPhone = '';
+
+    if (contentRows.length > 0) {
+        try {
+            const clients = JSON.parse(contentRows[0].content_value);
+            const client = clients.find(c => c.name === invoice.client_name);
+            if (client) {
+                clientEmail = client.email;
+                clientAddress = client.address || '';
+                clientPhone = client.phone || '';
+            }
+        } catch (e) {
+            console.error('Error parsing clients_list:', e);
+        }
+    }
+
+    if (!clientEmail) {
+        throw new Error(`Client email address not found/configured for ${invoice.client_name}`);
+    }
+
+    // Generate PDF
+    const pdfBuffer = await generateInvoicePDF(invoice, items, {
+        email: clientEmail,
+        address: clientAddress,
+        phone: clientPhone
+    });
+
+    // Setup Nodemailer transporter
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
+    });
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER || 'noreply@eriline.lk',
+        to: clientEmail,
+        subject: `Invoice #${invoice.invoice_number} from Eriline Software Solutions`,
+        text: `Dear ${invoice.client_name},\n\nPlease find attached invoice #${invoice.invoice_number} for your recent services.\nTotal Due: Rs${Number(invoice.amount).toFixed(2)}\n\nBest regards,\nEriline Software Solutions`,
+        attachments: [
+            {
+                filename: `Invoice_${invoice.invoice_number}.pdf`,
+                content: pdfBuffer,
+                contentType: 'application/pdf'
+            }
+        ]
+    };
+
+    await transporter.sendMail(mailOptions);
+    return clientEmail;
+}
+
 exports.sendInvoiceEmail = async (req, res) => {
     try {
-        const [invRows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [req.params.id]);
-        if (invRows.length === 0) return res.status(404).json({ message: 'Invoice not found' });
-
-        const invoice = invRows[0];
-        const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items;
-
-        const [contentRows] = await pool.query("SELECT content_value FROM site_content WHERE content_key = 'clients_list'");
-        let clientEmail = null;
-        let clientAddress = '';
-        let clientPhone = '';
-
-        if (contentRows.length > 0) {
-            try {
-                const clients = JSON.parse(contentRows[0].content_value);
-                const client = clients.find(c => c.name === invoice.client_name);
-                if (client) {
-                    clientEmail = client.email;
-                    clientAddress = client.address || '';
-                    clientPhone = client.phone || '';
-                }
-            } catch (e) {
-                console.error('Error parsing clients_list:', e);
-            }
-        }
-
-        if (!clientEmail) {
-            return res.status(400).json({ message: `Client email address not found/configured for ${invoice.client_name}` });
-        }
-
-        // Generate PDF
-        const pdfBuffer = await generateInvoicePDF(invoice, items, {
-            email: clientEmail,
-            address: clientAddress,
-            phone: clientPhone
-        });
-
-        // Setup Nodemailer transporter
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS
-            }
-        });
-
-        const mailOptions = {
-            from: process.env.EMAIL_USER || 'noreply@eriline.lk',
-            to: clientEmail,
-            subject: `Invoice #${invoice.invoice_number} from Eriline Software Solutions`,
-            text: `Dear ${invoice.client_name},\n\nPlease find attached invoice #${invoice.invoice_number} for your recent services.\nTotal Due: Rs${Number(invoice.amount).toFixed(2)}\n\nBest regards,\nEriline Software Solutions`,
-            attachments: [
-                {
-                    filename: `Invoice_${invoice.invoice_number}.pdf`,
-                    content: pdfBuffer,
-                    contentType: 'application/pdf'
-                }
-            ]
-        };
-
-        await transporter.sendMail(mailOptions);
+        const clientEmail = await internalSendInvoiceEmail(req.params.id);
         res.json({ message: `Invoice email successfully sent to ${clientEmail}` });
     } catch (err) {
         console.error('Send invoice email error:', err);
-        res.status(500).json({ error: 'Failed to send invoice email: ' + err.message });
+        res.status(err.message === 'Invoice not found' ? 404 : (err.message.includes('not found/configured') ? 400 : 500)).json({ error: 'Failed to send invoice email: ' + err.message });
     }
 };
 

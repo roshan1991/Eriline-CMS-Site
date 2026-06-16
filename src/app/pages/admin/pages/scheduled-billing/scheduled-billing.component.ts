@@ -13,7 +13,7 @@ import { CmsService } from '../../../../services/cms.service';
 })
 export class AdminScheduledBillingComponent implements OnInit {
   contents: any[] = [];
-  scheduledInvoices: any[] = [];
+  scheduledInvoices = new BehaviorSubject<any[]>([]);
   editableClients$ = new BehaviorSubject<any[]>([]);
   message = '';
   loading = false;
@@ -28,7 +28,7 @@ export class AdminScheduledBillingComponent implements OnInit {
     start_date: new Date().toISOString().split('T')[0]
   };
 
-  constructor(private cms: CmsService) {}
+  constructor(private cms: CmsService) { }
 
   ngOnInit() {
     this.loadScheduledInvoices();
@@ -51,7 +51,7 @@ export class AdminScheduledBillingComponent implements OnInit {
 
   loadScheduledInvoices() {
     this.cms.getScheduledInvoices().subscribe(data => {
-      this.scheduledInvoices = data;
+      this.scheduledInvoices.next(data);
     });
   }
 
