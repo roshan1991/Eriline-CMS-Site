@@ -11,6 +11,7 @@ router.post('/scheduled/:id/trigger', verifyToken, invoiceController.triggerSche
 
 router.get('/', verifyToken, invoiceController.getAllInvoices);
 router.post('/', verifyToken, invoiceController.createInvoice);
+router.put('/:id', verifyToken, invoiceController.updateInvoice);
 router.delete('/:id', verifyToken, invoiceController.deleteInvoice);
 router.patch('/:id/status', verifyToken, invoiceController.updateInvoiceStatus);
 router.post('/:id/send-email', verifyToken, invoiceController.sendInvoiceEmail);

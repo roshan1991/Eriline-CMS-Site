@@ -17,6 +17,7 @@ export class AdminBillingComponent implements OnInit {
     invoices: any = new BehaviorSubject<any[]>([]);
     editableClients$ = new BehaviorSubject<any[]>([]);
     message = '';
+    editingInvoiceId: number | null = null;
 
     newInvoice: any = {
         invoice_number: 'INV-' + Date.now().toString().slice(-6),
@@ -76,18 +77,44 @@ export class AdminBillingComponent implements OnInit {
 
     saveInvoice() {
         this.calculateTotal();
-        this.cms.createInvoice(this.newInvoice).subscribe(() => {
-            this.showMessage('Invoice generated successfully!');
-            this.loadInvoices();
-            this.newInvoice = {
-                invoice_number: 'INV-' + Date.now().toString().slice(-6),
-                client_name: '',
-                issue_date: new Date().toISOString().split('T')[0],
-                amount: 0,
-                status: 'Pending',
-                items: [{ description: '', qty: 1, price: 0 }]
-            };
-        });
+        if (this.editingInvoiceId) {
+            this.cms.updateInvoice(this.editingInvoiceId, this.newInvoice).subscribe(() => {
+                this.showMessage('Invoice updated successfully!');
+                this.loadInvoices();
+                this.cancelEdit();
+            });
+        } else {
+            this.cms.createInvoice(this.newInvoice).subscribe(() => {
+                this.showMessage('Invoice generated successfully!');
+                this.loadInvoices();
+                this.cancelEdit();
+            });
+        }
+    }
+
+    editInvoice(inv: any) {
+        this.editingInvoiceId = inv.id;
+        this.newInvoice = {
+            invoice_number: inv.invoice_number,
+            client_name: inv.client_name,
+            issue_date: new Date(inv.issue_date).toISOString().split('T')[0],
+            amount: inv.amount,
+            status: inv.status,
+            items: JSON.parse(JSON.stringify(inv.items))
+        };
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    cancelEdit() {
+        this.editingInvoiceId = null;
+        this.newInvoice = {
+            invoice_number: 'INV-' + Date.now().toString().slice(-6),
+            client_name: '',
+            issue_date: new Date().toISOString().split('T')[0],
+            amount: 0,
+            status: 'Pending',
+            items: [{ description: '', qty: 1, price: 0 }]
+        };
     }
 
     deleteInvoice(id: number) {

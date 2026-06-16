@@ -33,6 +33,10 @@ export class CmsService {
     return this.http.post(`${this.apiUrl}/invoices`, data);
   }
 
+  updateInvoice(id: number, data: any) {
+    return this.http.put(`${this.apiUrl}/invoices/${id}`, data);
+  }
+
   deleteInvoice(id: number) {
     return this.http.delete(`${this.apiUrl}/invoices/${id}`);
   }
