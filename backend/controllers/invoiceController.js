@@ -142,10 +142,33 @@ exports.triggerScheduledInvoice = async (req, res) => {
             );
 
             await conn.commit();
-            
+
             // 4. Send email automatically
             try {
-                await internalSendInvoiceEmail(result.insertId);
+                const clientEmail = await internalSendInvoiceEmail(result.insertId);
+
+                // Send notification to Admin
+                try {
+                    const transporter = nodemailer.createTransport({
+                        service: 'gmail',
+                        auth: {
+                            user: process.env.EMAIL_USER,
+                            pass: process.env.EMAIL_PASS
+                        }
+                    });
+
+                    const adminNotificationMsg = `Hello Admin,\n\nAn automated scheduled maintenance invoice (${invoiceNum}) was successfully generated and sent to ${sched.client_name} (${clientEmail}) on ${new Date().toLocaleDateString('en-GB')}.\n\nService: ${sched.service_name}\nCycle Amount: Rs${Number(sched.amount).toFixed(2)}\n\nEriline System`;
+
+                    await transporter.sendMail({
+                        from: process.env.EMAIL_USER || 'noreply@eriline.lk',
+                        to: process.env.EMAIL_USER,
+                        subject: `System Notification: Scheduled Invoice Sent to ${sched.client_name}`,
+                        text: adminNotificationMsg
+                    });
+                } catch (adminMailErr) {
+                    console.error("Failed to send admin notification:", adminMailErr);
+                }
+
                 res.json({ message: `Invoice ${invoiceNum} generated and emailed successfully!` });
             } catch (emailErr) {
                 console.error("Failed to send automated invoice email:", emailErr);
@@ -280,12 +303,26 @@ function generateInvoicePDF(invoice, items, clientInfo) {
             .text('Total Due:', 350, y)
             .text(`Rs.${Number(invoice.amount).toFixed(2)}`, 490, y, { width: 60, align: 'right' });
 
-        // Note
+        // Note & Bank Details
         y += 50;
+
+        // Left Column: Note
         doc.fillColor('#333333')
             .fontSize(8)
             .text('Thank you for choosing Eriline Software Solutions.', 50, y)
             .text('Payments are due within 15 days of issue.', 50, y + 15);
+
+        // Right Column: Bank Details
+        doc.fillColor('#0A214D')
+            .fontSize(10)
+            .text('Bank Details:', 350, y, { font: 'Helvetica-Bold' });
+
+        doc.fillColor('#333333')
+            .fontSize(8)
+            .text('Bank Name: Commercial Bank', 350, y + 15)
+            .text('Account Name: Roshan Sivalingam', 350, y + 27)
+            .text('Account No: [Enter Number]', 350, y + 39)
+            .text('Branch: [Enter Branch]', 350, y + 51);
 
         // --- Bottom Footer Design Accents (matching document layout from image) ---
 
