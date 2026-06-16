@@ -321,8 +321,9 @@ function generateInvoicePDF(invoice, items, clientInfo) {
             .fontSize(8)
             .text('Bank Name: Commercial Bank', 350, y + 15)
             .text('Account Name: Roshan Sivalingam', 350, y + 27)
-            .text('Account No: [Enter Number]', 350, y + 39)
-            .text('Branch: [Enter Branch]', 350, y + 51);
+            .text('Account No: 8100098090', 350, y + 39)
+            .text('Branch: Wellawatta', 350, y + 51)
+            .text('Swift code: CCEYLKLX', 350, y + 63);
 
         // --- Bottom Footer Design Accents (matching document layout from image) ---
 
