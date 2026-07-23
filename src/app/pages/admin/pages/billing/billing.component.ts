@@ -149,6 +149,21 @@ export class AdminBillingComponent implements OnInit {
         });
     }
 
+    sendWhatsApp(inv: any) {
+        inv.sendingWhatsApp = true;
+        this.cms.sendInvoiceWhatsApp(inv.id).subscribe({
+            next: (res: any) => {
+                this.showMessage(res.message || 'Invoice sent via WhatsApp successfully!');
+                inv.sendingWhatsApp = false;
+            },
+            error: (err) => {
+                const errMsg = err.error?.message || err.error?.error || err.message || 'Failed to send WhatsApp';
+                this.showMessage('Error: ' + errMsg);
+                inv.sendingWhatsApp = false;
+            }
+        });
+    }
+
     printInvoice(inv: any) {
         const client = this.editableClients$.value.find(c => c.name === inv.client_name);
         const printWindow = window.open('', '_blank');

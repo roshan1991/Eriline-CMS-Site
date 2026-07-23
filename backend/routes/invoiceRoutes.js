@@ -15,5 +15,6 @@ router.put('/:id', verifyToken, invoiceController.updateInvoice);
 router.delete('/:id', verifyToken, invoiceController.deleteInvoice);
 router.patch('/:id/status', verifyToken, invoiceController.updateInvoiceStatus);
 router.post('/:id/send-email', verifyToken, invoiceController.sendInvoiceEmail);
+router.post('/:id/send-whatsapp', verifyToken, invoiceController.sendInvoiceWhatsApp);
 
 module.exports = router;

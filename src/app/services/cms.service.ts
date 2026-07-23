@@ -49,6 +49,10 @@ export class CmsService {
     return this.http.post<any>(`${this.apiUrl}/invoices/${id}/send-email`, {});
   }
 
+  sendInvoiceWhatsApp(id: number) {
+    return this.http.post<any>(`${this.apiUrl}/invoices/${id}/send-whatsapp`, {});
+  }
+
   getScheduledInvoices() {
     return this.http.get<any[]>(`${this.apiUrl}/invoices/scheduled`);
   }

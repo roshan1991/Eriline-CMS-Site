@@ -144,36 +144,59 @@ exports.triggerScheduledInvoice = async (req, res) => {
             await conn.commit();
 
             // 4. Send email automatically
+            let emailSent = false;
+            let clientEmail = '';
             try {
-                const clientEmail = await internalSendInvoiceEmail(result.insertId);
-
-                // Send notification to Admin
-                try {
-                    const transporter = nodemailer.createTransport({
-                        service: 'gmail',
-                        auth: {
-                            user: process.env.EMAIL_USER,
-                            pass: process.env.EMAIL_PASS
-                        }
-                    });
-
-                    const adminNotificationMsg = `Hello Admin,\n\nAn automated scheduled maintenance invoice (${invoiceNum}) was successfully generated and sent to ${sched.client_name} (${clientEmail}) on ${new Date().toLocaleDateString('en-GB')}.\n\nService: ${sched.service_name}\nCycle Amount: Rs${Number(sched.amount).toFixed(2)}\n\nEriline System`;
-
-                    await transporter.sendMail({
-                        from: process.env.EMAIL_USER || 'noreply@eriline.lk',
-                        to: process.env.EMAIL_USER,
-                        subject: `System Notification: Scheduled Invoice Sent to ${sched.client_name}`,
-                        text: adminNotificationMsg
-                    });
-                } catch (adminMailErr) {
-                    console.error("Failed to send admin notification:", adminMailErr);
-                }
-
-                res.json({ message: `Invoice ${invoiceNum} generated and emailed successfully!` });
+                clientEmail = await internalSendInvoiceEmail(result.insertId);
+                emailSent = true;
             } catch (emailErr) {
                 console.error("Failed to send automated invoice email:", emailErr);
-                res.json({ message: `Invoice ${invoiceNum} generated successfully, but email failed: ${emailErr.message}` });
             }
+
+            // 5. Send WhatsApp automatically
+            let whatsappSent = false;
+            let clientPhone = '';
+            try {
+                clientPhone = await internalSendInvoiceWhatsApp(result.insertId);
+                whatsappSent = true;
+            } catch (whatsappErr) {
+                console.error("Failed to send automated invoice WhatsApp:", whatsappErr);
+            }
+
+            // Send notification to Admin
+            try {
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                        user: process.env.EMAIL_USER,
+                        pass: process.env.EMAIL_PASS
+                    }
+                });
+
+                const adminNotificationMsg = `Hello Admin,\n\nAn automated scheduled maintenance invoice (${invoiceNum}) was generated for ${sched.client_name} on ${new Date().toLocaleDateString('en-GB')}.\n\nService: ${sched.service_name}\nCycle Amount: Rs${Number(sched.amount).toFixed(2)}\n\nEmail Status: ${emailSent ? 'Sent to ' + clientEmail : 'Failed/Not Configured'}\nWhatsApp Status: ${whatsappSent ? 'Sent to ' + clientPhone : 'Failed/Not Configured'}\n\nEriline System`;
+
+                await transporter.sendMail({
+                    from: process.env.EMAIL_USER || 'noreply@eriline.lk',
+                    to: process.env.EMAIL_USER,
+                    subject: `System Notification: Scheduled Invoice Generated for ${sched.client_name}`,
+                    text: adminNotificationMsg
+                });
+            } catch (adminMailErr) {
+                console.error("Failed to send admin notification:", adminMailErr);
+            }
+
+            let statusMessage = `Invoice ${invoiceNum} generated successfully.`;
+            if (emailSent && whatsappSent) {
+                statusMessage += ` Emailed to ${clientEmail} and sent via WhatsApp to ${clientPhone}.`;
+            } else if (emailSent) {
+                statusMessage += ` Emailed to ${clientEmail}, but WhatsApp failed.`;
+            } else if (whatsappSent) {
+                statusMessage += ` Sent via WhatsApp to ${clientPhone}, but Email failed.`;
+            } else {
+                statusMessage += ` Both Email and WhatsApp delivery failed.`;
+            }
+
+            res.json({ message: statusMessage });
         } catch (err) {
             await conn.rollback();
             throw err;
@@ -438,6 +461,88 @@ exports.sendInvoiceEmail = async (req, res) => {
     } catch (err) {
         console.error('Send invoice email error:', err);
         res.status(err.message === 'Invoice not found' ? 404 : (err.message.includes('not found/configured') ? 400 : 500)).json({ error: 'Failed to send invoice email: ' + err.message });
+    }
+};
+
+async function internalSendInvoiceWhatsApp(invoiceId) {
+    const [invRows] = await pool.query('SELECT * FROM invoices WHERE id = ?', [invoiceId]);
+    if (invRows.length === 0) throw new Error('Invoice not found');
+
+    const invoice = invRows[0];
+    const items = typeof invoice.items === 'string' ? JSON.parse(invoice.items) : invoice.items;
+
+    const [contentRows] = await pool.query("SELECT content_value FROM site_content WHERE content_key = 'clients_list'");
+    let clientEmail = '';
+    let clientAddress = '';
+    let clientPhone = '';
+
+    if (contentRows.length > 0) {
+        try {
+            const clients = JSON.parse(contentRows[0].content_value);
+            const client = clients.find(c => c.name === invoice.client_name);
+            if (client) {
+                clientEmail = client.email || '';
+                clientAddress = client.address || '';
+                clientPhone = client.phone || '';
+            }
+        } catch (e) {
+            console.error('Error parsing clients_list:', e);
+        }
+    }
+
+    if (!clientPhone) {
+        throw new Error(`Client phone number not found/configured for ${invoice.client_name}`);
+    }
+
+    // Generate PDF
+    const pdfBuffer = await generateInvoicePDF(invoice, items, {
+        email: clientEmail,
+        address: clientAddress,
+        phone: clientPhone
+    });
+
+    const gatewayUrl = process.env.WHATSAPP_GATEWAY_URL || 'https://whatsapp-gateway-production-a45a.up.railway.app/api/send';
+    const apiKey = process.env.WHATSAPP_API_KEY || 'wapp_key_95f5b3371090b70bee2e6bd339dbe0176af683ef620a009b';
+
+    const payload = {
+        number: clientPhone,
+        mediaData: pdfBuffer.toString('base64'),
+        mimetype: 'application/pdf',
+        filename: `Invoice_${invoice.invoice_number}.pdf`,
+        caption: `Dear ${invoice.client_name},\n\nPlease find attached invoice #${invoice.invoice_number} for your recent services.\nTotal Due: Rs${Number(invoice.amount).toFixed(2)}\n\nBest regards,\nEriline Software Solutions`
+    };
+
+    const response = await fetch(gatewayUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const responseText = await response.text();
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (e) {
+        throw new Error(`Invalid response from WhatsApp gateway (status ${response.status}): ${responseText}`);
+    }
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || `Failed to send WhatsApp message (status ${response.status})`);
+    }
+
+    return clientPhone;
+}
+
+exports.sendInvoiceWhatsApp = async (req, res) => {
+    try {
+        const clientPhone = await internalSendInvoiceWhatsApp(req.params.id);
+        res.json({ message: `Invoice successfully sent via WhatsApp to ${clientPhone}` });
+    } catch (err) {
+        console.error('Send invoice WhatsApp error:', err);
+        res.status(err.message === 'Invoice not found' ? 404 : (err.message.includes('not found/configured') ? 400 : 500)).json({ error: 'Failed to send WhatsApp invoice: ' + err.message });
     }
 };
 

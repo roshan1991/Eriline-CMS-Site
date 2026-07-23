@@ -108,6 +108,9 @@
               <button class="btn-outline btn-xs" (click)="sendEmail(inv)" [disabled]="inv.sendingEmail">
                 {{ inv.sendingEmail ? '⏳ Sending...' : '📧 Email' }}
               </button>
+              <button class="btn-outline btn-xs" (click)="sendWhatsApp(inv)" [disabled]="inv.sendingWhatsApp">
+                {{ inv.sendingWhatsApp ? '⏳ Sending...' : '💬 WhatsApp' }}
+              </button>
               <button class="btn-outline btn-xs" (click)="editInvoice(inv)">✏️ Edit</button>
               <button class="btn-primary btn-xs" (click)="printInvoice(inv)">📄 Print</button>
               <button class="btn-danger btn-xs" (click)="deleteInvoice(inv.id)">🗑️</button>
